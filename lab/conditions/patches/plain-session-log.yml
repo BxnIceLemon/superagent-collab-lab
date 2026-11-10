@@ -1,0 +1,7 @@
+# Keep session logs as plain JSONL so the harness can read token usage
+# directly. This restates the shipped row's whole config (a patch replaces it)
+# and changes only the compression.
+- id: session-persistence-jsonl
+  config:
+    root: !!js dshHomePath('sessions')
+    compression: none

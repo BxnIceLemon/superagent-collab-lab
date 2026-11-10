@@ -1,0 +1,22 @@
+# Fixed model catalog, filled in by hand. Each figure records its source and
+# the date it was read, so runs can be repriced and audited. Taste ranks come
+# from public blind-test leaderboards: Design Arena and LMArena WebDev for
+# visual design, LMArena's Creative Writing category for copy.
+#
+# Entry shape (see harness/src/catalog.ts):
+#
+#   - provider: deepseek-official        # as DSH logs it in message.source
+#     model: deepseek-v4-flash
+#     price:
+#       currency: USD
+#       inputPerMTok: 0                  # uncached input
+#       outputPerMTok: 0
+#       cacheReadPerMTok: 0              # optional, defaults to inputPerMTok
+#       source: { name: ..., url: https://..., queriedAt: 2026-11-10 }
+#     benchmarks:
+#       - { name: ..., score: 0, source: { name: ..., url: https://..., queriedAt: 2026-11-10 } }
+#     taste:
+#       visual: { rank: 1, source: { name: Design Arena, url: https://www.designarena.ai, queriedAt: 2026-11-10 } }
+#       copy: { rank: 1, source: { name: LMArena Creative Writing, url: https://lmarena.ai/leaderboard, queriedAt: 2026-11-10 } }
+version: 1
+models: []

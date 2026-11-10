@@ -1,0 +1,9 @@
+# The lab is its own pnpm workspace, separate from the DSH workspace at the
+# repository root, so lab tooling never changes the upstream lockfile.
+packages:
+  - harness
+  - superagent
+
+# pnpm blocks dependency install scripts unless they are listed here.
+allowBuilds:
+  esbuild: true

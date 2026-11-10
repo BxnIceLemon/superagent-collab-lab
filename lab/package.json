@@ -1,0 +1,16 @@
+{
+  "name": "superagent-collab-lab",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Experiment infrastructure for multi-model supervisor-worker collaboration, built on DeepSeek Harness (DSH).",
+  "license": "MIT",
+  "type": "module",
+  "packageManager": "pnpm@11.28.5",
+  "engines": {
+    "node": "^22.19.0 || >=24.0.0"
+  },
+  "scripts": {
+    "lab": "node harness/src/cli.ts",
+    "check": "pnpm --filter collab-lab-harness check"
+  }
+}

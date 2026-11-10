@@ -1,0 +1,4 @@
+# Run outputs stay local. Commit a run's run.json deliberately when a paper
+# table cites it (git add -f <run>/run.json).
+*
+!.gitignore

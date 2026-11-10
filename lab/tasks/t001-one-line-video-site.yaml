@@ -1,0 +1,14 @@
+version: 1
+id: t001-one-line-video-site
+title: One-line brief for an anime video website
+# The underspecified brief the architecture is meant to handle: no audience,
+# features, stack or content source is given.
+prompt: 我要做个动漫视频网站
+gates:
+  - id: has-readme
+    run: test -s README.md
+  - id: has-package
+    run: test -s package.json
+  - id: builds
+    run: npm install --no-audit --no-fund && npm run build
+    timeoutSec: 900
