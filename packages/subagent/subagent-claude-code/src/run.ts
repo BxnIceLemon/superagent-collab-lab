@@ -153,8 +153,6 @@ export interface ClaudeCodeRunSpec {
   readonly cwd: string
   /** Profile-selected native model; omitted to preserve Claude settings. */
   readonly model?: string
-  /** Profile-selected Claude Code executable; omitted to use the SDK's bundled CLI. */
-  readonly executable?: string
   /** Profile-selected native non-interactive permission mode. */
   readonly permissionMode: ClaudeCodePermissionMode
   /** Explicit deployment/test environment layered after shared scrubbing. */
@@ -348,7 +346,6 @@ export function claudeQueryOptions(
     abortController: controller,
     cwd: spec.cwd,
     ...spec.model === undefined ? {} : { model: spec.model },
-    ...spec.executable === undefined ? {} : { pathToClaudeCodeExecutable: spec.executable },
     env: { ...scrubbedParentEnv(), ...spec.env },
     persistSession: false,
     disallowedTools: spec.permissionMode === 'plan'

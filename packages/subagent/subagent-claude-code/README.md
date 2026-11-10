@@ -41,7 +41,6 @@ The layer inserts Host rows only, so any profile can select it, including the sh
 |---|---|---|
 | `providerName` | `claude-code` | Non-empty registry name on `ctx.subagents`; each mounted instance needs a unique value |
 | `model` | native Claude settings | Optional non-empty model name fixed for every run from this provider instance; omission sends no SDK override |
-| `executable` | SDK-bundled CLI | Absolute path of the Claude Code executable the SDK runs; a host install may support newer models |
 | `env` | `{}` | Explicit SDK/CLI environment layered over the credential-scrubbed parent environment |
 | `permissionMode` | `dontAsk` | Native non-interactive permission policy fixed for every run from this provider instance |
 | `disposeGraceMs` | `3000` | Grace between the shared managed-range owner's termination tiers |
@@ -186,7 +185,7 @@ These limits define when this provider is a poor fit or needs special operationa
 
 This Dev Note is working context for maintainers: open questions and undecided directions. It is explicitly non-authoritative — shipped behavior and limits live in the sections above and in the package code.
 
-- **Payload size disclosure** — the current darwin-arm64 platform payload packs to about 92 MB and unpacks to about 325 MB; these are disclosure numbers, not installation thresholds.
-- **Version-pinned protocol** — the runtime dependency is pinned to Agent SDK 0.3.263; upgrading pins a new SDK version and requires re-running the keyless real-product and loader-composition evidence.
+- **Payload size disclosure** — the current darwin-arm64 platform payload packs to about 123 MB and unpacks to about 276 MB; these are disclosure numbers, not installation thresholds.
+- **Version-pinned protocol** — the runtime dependency is pinned to Agent SDK 0.3.311; upgrading pins a new SDK version and requires re-running the keyless real-product and loader-composition evidence.
 
 </details>

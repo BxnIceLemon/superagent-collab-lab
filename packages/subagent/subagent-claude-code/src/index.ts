@@ -6,7 +6,6 @@
  * @module @deepseek-ai/dsh-subagent-claude-code
  */
 
-import { isAbsolute } from 'node:path'
 import type { Context } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
 import { MAX_TIMER_DELAY_MS } from '@deepseek-ai/dsh-timeout'
@@ -44,11 +43,6 @@ export interface Config {
   /** Native Claude model fixed for this instance; omitted to inherit Claude settings. */
   model?: string
   /**
-   * Absolute path of the Claude Code executable the SDK runs; omitted to use
-   * the CLI bundled with the SDK. A host install may support newer models.
-   */
-  executable?: string
-  /**
    * Explicit environment entries layered over the subprocess seam's
    * credential-scrubbed parent environment.
    */
@@ -72,7 +66,6 @@ export interface Config {
 export const Config: z<Config> = z.object({
   providerName: z.string().min(1).default(DEFAULT_PROVIDER_NAME),
   model: z.string().min(1),
-  executable: z.string().min(1),
   env: z.dict(z.string()).default({}),
   permissionMode: z.union([...CLAUDE_CODE_PERMISSION_MODES])
     .default(DEFAULT_CLAUDE_CODE_PERMISSION_MODE),
@@ -80,8 +73,8 @@ export const Config: z<Config> = z.object({
   usageLog: z.string().min(1),
 })
 
-type ResolvedConfig = Omit<Required<Config>, 'model' | 'executable' | 'usageLog'>
-  & Pick<Config, 'model' | 'executable'>
+type ResolvedConfig = Omit<Required<Config>, 'model' | 'usageLog'>
+  & Pick<Config, 'model'>
   & { readonly usageLog?: UsageLogWriter }
 /* jscpd:ignore-end */
 
@@ -118,7 +111,6 @@ class ClaudeCodeProvider implements SubagentProvider {
     const spec: ClaudeCodeRunSpec = {
       cwd,
       ...this.config.model === undefined ? {} : { model: this.config.model },
-      ...this.config.executable === undefined ? {} : { executable: this.config.executable },
       permissionMode: this.config.permissionMode,
       env: this.config.env,
       disposeGraceMs: this.config.disposeGraceMs,
@@ -141,11 +133,6 @@ class ClaudeCodeProvider implements SubagentProvider {
   }
 }
 
-function absoluteExecutable(path: string): string {
-  if (!isAbsolute(path)) throw new Error('subagent-claude-code: executable must be an absolute path')
-  return path
-}
-
 /**
  * Register one Profile-named Claude Code provider.
  * @param ctx - context carrying shared subagent and subprocess services.
@@ -155,7 +142,6 @@ export function apply(ctx: Context, config: Config): void {
   const resolved: ResolvedConfig = {
     providerName: config.providerName ?? DEFAULT_PROVIDER_NAME,
     ...config.model === undefined ? {} : { model: config.model },
-    ...config.executable === undefined ? {} : { executable: absoluteExecutable(config.executable) },
     env: config.env as Record<string, string>,
     permissionMode: config.permissionMode ?? DEFAULT_CLAUDE_CODE_PERMISSION_MODE,
     disposeGraceMs: config.disposeGraceMs as number,

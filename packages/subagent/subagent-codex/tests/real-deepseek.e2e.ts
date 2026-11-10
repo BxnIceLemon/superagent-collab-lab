@@ -114,8 +114,8 @@ describe.skipIf(!process.env.DEEPSEEK_API_KEY)(
       const version = await execFileAsync(process.execPath, [codexEntry, '--version'], {
         env: { ...process.env, ...env },
       })
-      expect(codexPackage.version).toBe('0.153.4')
-      expect(version.stdout.trim()).toBe('codex-cli 0.153.4')
+      expect(codexPackage.version).toBe('0.167.0-alpha.3.2')
+      expect(version.stdout.trim()).toBe('codex-cli 0.167.0-alpha.3.2')
 
       const parent = {
         id: 'deepseek-e2e-parent',
