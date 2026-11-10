@@ -2,8 +2,9 @@
 
 Experiment infrastructure for testing a multi-model supervisor–worker
 architecture on DeepSeek Harness (DSH). Everything the lab adds lives in this
-directory, apart from two small changes to DSH's Claude Code and Codex
-delegation adapters listed in [NOTICE.md](NOTICE.md). The base is DSH
+directory, apart from changes to DSH's Claude Code and Codex delegation
+adapters (an opt-in usage log and newer bundled CLIs) listed in
+[NOTICE.md](NOTICE.md). The base is DSH
 `dsh-v0.2.1-rc.5`.
 
 ## Layout
@@ -22,7 +23,7 @@ delegation adapters listed in [NOTICE.md](NOTICE.md). The base is DSH
 - Node.js `^22.19.0 || >=24.0.0` (the harness runs TypeScript directly through Node's type stripping)
 - pnpm `11.28.5`, for example through `corepack pnpm`
 - A DeepSeek API key
-- For conditions that delegate: Claude Code signed in on the host (`claude` on `PATH`, 2.1.290 or newer for every pinned model) and a Codex login in `~/.codex`
+- For conditions that delegate: a Claude Code login on the host and a Codex login in `~/.codex`. The CLIs themselves are the ones DSH bundles: Claude Code 2.1.311 (Agent SDK 0.3.311) and Codex 0.167.0-alpha.3.2
 
 ## Setup
 
@@ -71,15 +72,14 @@ Every run sets `DSH_TELEMETRY_MODE=DISABLED`.
 | Role | Models | Access | Billing |
 | --- | --- | --- | --- |
 | Root agent (DSH) | `deepseek-flash` (V4.1 Flash), `deepseek-v4-pro` | DeepSeek API key | Per token, with weekday peak rates |
-| Claude Code workers | `claude-fable-5-2`, `claude-opus-5-5`, `claude-sonnet-5-5`, `claude-haiku-5-5` | Host Claude Code login | Claude Max (5x) subscription |
-| Codex workers | `gpt-6-astra`, `gpt-5.6-sol`, `gpt-5.6-terra`, `gpt-5.6-luna` | Codex login in `~/.codex`, through the Codex CLI DSH bundles (0.153.4) | ChatGPT Plus subscription |
+| Claude Code workers | `claude-fable-5-2`, `claude-opus-5-5`, `claude-sonnet-5-5`, `claude-haiku-5-5` | Host Claude Code login, through the bundled Claude Code 2.1.311 | Claude Max (5x) subscription |
+| Codex workers | `gpt-6-astra`, `gpt-5.6-sol`, `gpt-5.6-terra`, `gpt-5.6-luna` | Codex login in `~/.codex`, through the bundled Codex 0.167.0-alpha.3.2 | ChatGPT Plus subscription |
 
 Each worker model is its own delegation tool, such as `subagent_claude_opus`
-or `subagent_codex_luna`; see `conditions/patches/worker-*.yml`. The harness
-points the Claude Code adapter at the host install through
-`LAB_CLAUDE_EXECUTABLE`, because the CLI bundled with the Agent SDK (2.1.263)
-does not support Opus 5.5 or Fable 5.2. Codex models are pinned because the
-bundled Codex CLI may not support the operator's own Codex default.
+or `subagent_codex_luna`; see `conditions/patches/worker-*.yml`. Both CLIs
+are pinned by the DSH lockfile at the versions on the operator's machine (see
+[NOTICE.md](NOTICE.md)), and each worker pins its model, so runs follow
+neither the host's CLI updates nor its default models.
 
 ## Conditions
 
@@ -103,7 +103,7 @@ bundled Codex CLI may not support the operator's own Codex default.
 | `followUpMessages` | Messages with source kind `user` after the first one, in sessions of delegation depth 0: the human-attention measure |
 | `gates[]` | Exit status of each task gate, run in the workspace after the agent stops |
 | `agent.wallMs` | Wall time of the agent process |
-| `environment` | Repository commit, Node version, platform, and the host Claude Code and bundled Codex versions |
+| `environment` | Repository commit, Node version, platform, the bundled Agent SDK, Claude Code and Codex versions, and the host Claude Code version for reference |
 
 Session logs must be plain JSONL for the harness to read them. Every condition
 applies `conditions/patches/plain-session-log.yml`, which turns off the

@@ -24,8 +24,9 @@ export const RunRecord = z.object({
     node: z.string(),
     platform: z.string(),
     hostTools: z.object({
-      claudeCode: z.object({ path: z.string(), version: z.string() }).nullable(),
+      claudeCodeBundled: z.object({ sdk: z.string(), claudeCode: z.string() }).nullable(),
       codexBundled: z.string().nullable(),
+      claudeCodeHost: z.string().nullable(),
     }),
   }),
   agent: z.object({

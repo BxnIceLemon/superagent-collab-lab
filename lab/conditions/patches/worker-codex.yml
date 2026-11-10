@@ -1,9 +1,10 @@
 # Codex as delegation targets, one per pinned model, through the local Codex
-# login in ~/.codex (the operator's ChatGPT subscription). Models are pinned
-# because the operator's own Codex default may be newer than the Codex
-# version DSH bundles (0.153.4). Each delegation is a fresh unattended Codex
-# thread in the parent's workspace; its native usage is appended to
-# <DSH_HOME>/lab-usage.jsonl for the harness.
+# login in ~/.codex (the operator's ChatGPT subscription), through the Codex
+# CLI DSH bundles (0.167.0-alpha.3.2, pinned by the DSH lockfile). Models are
+# pinned per instance so runs do not follow the operator's Codex default.
+# Each delegation is a fresh unattended Codex thread in the parent's
+# workspace; its native usage is appended to <DSH_HOME>/lab-usage.jsonl for
+# the harness.
 #
 # permissionMode "approve-for-me" routes permission requests through Codex
 # automatic review inside a workspace-write sandbox, without a person.

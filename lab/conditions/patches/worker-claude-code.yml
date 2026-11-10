@@ -3,9 +3,8 @@
 # fresh unattended Claude Code session in the parent's workspace; its native
 # usage is appended to <DSH_HOME>/lab-usage.jsonl for the harness.
 #
-# executable: the host's Claude Code, resolved by the harness into
-# LAB_CLAUDE_EXECUTABLE, because the CLI bundled with the Agent SDK (2.1.263)
-# does not support Opus 5.5 or Fable 5.2. Unset falls back to the bundled CLI.
+# The adapter runs the Claude Code bundled with its Agent SDK (0.3.311,
+# Claude Code 2.1.311), pinned by the DSH lockfile.
 #
 # permissionMode "auto" lets Claude Code's own classifier approve tool use
 # without a person, so a worker can edit and run commands unattended.
@@ -15,7 +14,6 @@
       config:
         providerName: claude-fable
         model: claude-fable-5-2
-        executable: !!js process.env.LAB_CLAUDE_EXECUTABLE
         permissionMode: auto
         usageLog: !!js dshHomePath('lab-usage.jsonl')
     - id: tool-subagent-claude-fable
@@ -29,7 +27,6 @@
       config:
         providerName: claude-opus
         model: claude-opus-5-5
-        executable: !!js process.env.LAB_CLAUDE_EXECUTABLE
         permissionMode: auto
         usageLog: !!js dshHomePath('lab-usage.jsonl')
     - id: tool-subagent-claude-opus
@@ -43,7 +40,6 @@
       config:
         providerName: claude-sonnet
         model: claude-sonnet-5-5
-        executable: !!js process.env.LAB_CLAUDE_EXECUTABLE
         permissionMode: auto
         usageLog: !!js dshHomePath('lab-usage.jsonl')
     - id: tool-subagent-claude-sonnet
@@ -57,7 +53,6 @@
       config:
         providerName: claude-haiku
         model: claude-haiku-5-5
-        executable: !!js process.env.LAB_CLAUDE_EXECUTABLE
         permissionMode: auto
         usageLog: !!js dshHomePath('lab-usage.jsonl')
     - id: tool-subagent-claude-haiku

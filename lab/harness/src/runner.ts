@@ -128,12 +128,8 @@ export async function runExperiment(options: RunOptions): Promise<RunRecord> {
 
   const launcher = options.launcher ?? sourceLauncher(options.repoRoot)
   const hostTools = options.hostTools ?? detectHostTools(options.repoRoot)
-  // Lab defaults, which a condition's env may override: no telemetry, and the
-  // host Claude Code for Claude delegation (see worker-claude-code.yml).
-  const labEnv: Record<string, string> = {
-    DSH_TELEMETRY_MODE: 'DISABLED',
-    ...(hostTools.claudeCode === null ? {} : { LAB_CLAUDE_EXECUTABLE: hostTools.claudeCode.path }),
-  }
+  // Lab default, which a condition's env may override: no telemetry.
+  const labEnv: Record<string, string> = { DSH_TELEMETRY_MODE: 'DISABLED' }
   const args = [
     ...launcher.args,
     '--profile',

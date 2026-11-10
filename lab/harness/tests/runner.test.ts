@@ -52,7 +52,7 @@ describe('runExperiment', () => {
       },
       catalog,
       launcher: { command: process.execPath, args: [fakeDsh], env: {} },
-      hostTools: { claudeCode: { path: '/opt/claude', version: '9.9.9' }, codexBundled: '0.0.1' },
+      hostTools: { claudeCodeBundled: { sdk: '0.0.2', claudeCode: '9.9.9' }, codexBundled: '0.0.1', claudeCodeHost: null },
       now: () => new Date('2026-11-10T08:00:00.000Z'),
     })
 
@@ -97,7 +97,7 @@ describe('runExperiment', () => {
     const runDir = join(dir, 'results', record.runId)
     const stderr = await readFile(join(runDir, 'agent.stderr.log'), 'utf8')
     expect(stderr).toContain('--profile headless --patch /p.yml --json -')
-    expect(stderr).toContain('env: DSH_TELEMETRY_MODE=DISABLED LAB_CLAUDE_EXECUTABLE=/opt/claude')
+    expect(stderr).toContain('env: DSH_TELEMETRY_MODE=DISABLED')
     expect(record.environment.hostTools.codexBundled).toBe('0.0.1')
     expect(await readFile(join(runDir, 'events.ndjson'), 'utf8')).toContain('"final"')
 
