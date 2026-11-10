@@ -13,8 +13,19 @@ License. Their copyright and license notices are kept in place.
 built on DeepSeek Harness; it is not an official DeepSeek project and is not
 endorsed by DeepSeek.
 
-## Modifications
+## Modifications to DeepSeek Harness
 
-None. Upstream files are unchanged. The lab's own work is confined to
-`lab/` (excluding `lab/superagent/`), `.github/README.md` and
-`CITATION.cff`, and is licensed under [lab/LICENSE](LICENSE).
+Two delegation adapters gain opt-in configuration. With the new fields
+unset, both behave exactly as upstream.
+
+| Package | Change |
+| --- | --- |
+| `packages/subagent/subagent-claude-code` | `usageLog`: append each run's native SDK usage (`modelUsage`, `total_cost_usd`) to a JSONL file. `executable`: run a given Claude Code executable through the SDK's `pathToClaudeCodeExecutable` instead of the bundled CLI |
+| `packages/subagent/subagent-codex` | `usageLog`: append each run's model and latest `thread/tokenUsage/updated` payload to a JSONL file |
+
+Each package adds `src/usage-log.ts` and `tests/usage.spec.ts`, and documents
+the new fields in its README. Usage records never enter a model's context.
+
+The lab's own work is confined to `lab/` (excluding `lab/superagent/`),
+`.github/README.md` and `CITATION.cff`, and is licensed under
+[lab/LICENSE](LICENSE). The prototype in `lab/superagent/` is unmodified.

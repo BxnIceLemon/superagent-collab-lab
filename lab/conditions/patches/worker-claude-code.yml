@@ -1,0 +1,68 @@
+# Claude Code as delegation targets, one per pinned model, through the local
+# Claude Code login (the operator's Claude subscription). Each delegation is a
+# fresh unattended Claude Code session in the parent's workspace; its native
+# usage is appended to <DSH_HOME>/lab-usage.jsonl for the harness.
+#
+# executable: the host's Claude Code, resolved by the harness into
+# LAB_CLAUDE_EXECUTABLE, because the CLI bundled with the Agent SDK (2.1.263)
+# does not support Opus 5.5 or Fable 5.2. Unset falls back to the bundled CLI.
+#
+# permissionMode "auto" lets Claude Code's own classifier approve tool use
+# without a person, so a worker can edit and run commands unattended.
+- insert:
+    - id: subagent-claude-fable
+      name: '@deepseek-ai/dsh-subagent-claude-code'
+      config:
+        providerName: claude-fable
+        model: claude-fable-5-2
+        executable: !!js process.env.LAB_CLAUDE_EXECUTABLE
+        permissionMode: auto
+        usageLog: !!js dshHomePath('lab-usage.jsonl')
+    - id: tool-subagent-claude-fable
+      name: '@deepseek-ai/dsh-tool-subagent'
+      config:
+        provider: claude-fable
+        toolName: subagent_claude_fable
+        maxDepth: provider-managed
+    - id: subagent-claude-opus
+      name: '@deepseek-ai/dsh-subagent-claude-code'
+      config:
+        providerName: claude-opus
+        model: claude-opus-5-5
+        executable: !!js process.env.LAB_CLAUDE_EXECUTABLE
+        permissionMode: auto
+        usageLog: !!js dshHomePath('lab-usage.jsonl')
+    - id: tool-subagent-claude-opus
+      name: '@deepseek-ai/dsh-tool-subagent'
+      config:
+        provider: claude-opus
+        toolName: subagent_claude_opus
+        maxDepth: provider-managed
+    - id: subagent-claude-sonnet
+      name: '@deepseek-ai/dsh-subagent-claude-code'
+      config:
+        providerName: claude-sonnet
+        model: claude-sonnet-5-5
+        executable: !!js process.env.LAB_CLAUDE_EXECUTABLE
+        permissionMode: auto
+        usageLog: !!js dshHomePath('lab-usage.jsonl')
+    - id: tool-subagent-claude-sonnet
+      name: '@deepseek-ai/dsh-tool-subagent'
+      config:
+        provider: claude-sonnet
+        toolName: subagent_claude_sonnet
+        maxDepth: provider-managed
+    - id: subagent-claude-haiku
+      name: '@deepseek-ai/dsh-subagent-claude-code'
+      config:
+        providerName: claude-haiku
+        model: claude-haiku-5-5
+        executable: !!js process.env.LAB_CLAUDE_EXECUTABLE
+        permissionMode: auto
+        usageLog: !!js dshHomePath('lab-usage.jsonl')
+    - id: tool-subagent-claude-haiku
+      name: '@deepseek-ai/dsh-tool-subagent'
+      config:
+        provider: claude-haiku
+        toolName: subagent_claude_haiku
+        maxDepth: provider-managed

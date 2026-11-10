@@ -1,0 +1,62 @@
+# Codex as delegation targets, one per pinned model, through the local Codex
+# login in ~/.codex (the operator's ChatGPT subscription). Models are pinned
+# because the operator's own Codex default may be newer than the Codex
+# version DSH bundles (0.153.4). Each delegation is a fresh unattended Codex
+# thread in the parent's workspace; its native usage is appended to
+# <DSH_HOME>/lab-usage.jsonl for the harness.
+#
+# permissionMode "approve-for-me" routes permission requests through Codex
+# automatic review inside a workspace-write sandbox, without a person.
+- insert:
+    - id: subagent-codex-astra
+      name: '@deepseek-ai/dsh-subagent-codex'
+      config:
+        providerName: codex-astra
+        model: gpt-6-astra
+        permissionMode: approve-for-me
+        usageLog: !!js dshHomePath('lab-usage.jsonl')
+    - id: tool-subagent-codex-astra
+      name: '@deepseek-ai/dsh-tool-subagent'
+      config:
+        provider: codex-astra
+        toolName: subagent_codex_astra
+        maxDepth: provider-managed
+    - id: subagent-codex-sol
+      name: '@deepseek-ai/dsh-subagent-codex'
+      config:
+        providerName: codex-sol
+        model: gpt-5.6-sol
+        permissionMode: approve-for-me
+        usageLog: !!js dshHomePath('lab-usage.jsonl')
+    - id: tool-subagent-codex-sol
+      name: '@deepseek-ai/dsh-tool-subagent'
+      config:
+        provider: codex-sol
+        toolName: subagent_codex_sol
+        maxDepth: provider-managed
+    - id: subagent-codex-terra
+      name: '@deepseek-ai/dsh-subagent-codex'
+      config:
+        providerName: codex-terra
+        model: gpt-5.6-terra
+        permissionMode: approve-for-me
+        usageLog: !!js dshHomePath('lab-usage.jsonl')
+    - id: tool-subagent-codex-terra
+      name: '@deepseek-ai/dsh-tool-subagent'
+      config:
+        provider: codex-terra
+        toolName: subagent_codex_terra
+        maxDepth: provider-managed
+    - id: subagent-codex-luna
+      name: '@deepseek-ai/dsh-subagent-codex'
+      config:
+        providerName: codex-luna
+        model: gpt-5.6-luna
+        permissionMode: approve-for-me
+        usageLog: !!js dshHomePath('lab-usage.jsonl')
+    - id: tool-subagent-codex-luna
+      name: '@deepseek-ai/dsh-tool-subagent'
+      config:
+        provider: codex-luna
+        toolName: subagent_codex_luna
+        maxDepth: provider-managed

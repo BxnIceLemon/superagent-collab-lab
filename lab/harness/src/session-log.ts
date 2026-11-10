@@ -27,6 +27,19 @@ export interface SessionSummary {
   userMessages: number
   turns: number
   usage: ModelUsage[]
+  /** Every model call in log order, with its event time, for time-dependent pricing. */
+  calls: ModelCall[]
+}
+
+export interface ModelCall {
+  provider: string
+  model: string
+  /** Event time in epoch ms; null when the log line carried none. */
+  time: number | null
+  inputTokens: number
+  outputTokens: number
+  cacheReadTokens: number
+  cacheWriteTokens: number
 }
 
 /** A session log that cannot be read as the lab expects. */
@@ -79,6 +92,7 @@ export async function findSessionLogs(root: string): Promise<string[]> {
 interface RawEvent {
   type?: unknown
   id?: unknown
+  time?: unknown
   delegationDepth?: unknown
   data?: {
     usage?: Record<string, unknown>
@@ -98,7 +112,7 @@ function count(value: unknown): number {
  */
 export async function readSessionLog(file: string): Promise<SessionSummary> {
   const lines = (await readFile(file, 'utf8')).split('\n')
-  const summary: SessionSummary = { id: '', file, delegationDepth: 0, userMessages: 0, turns: 0, usage: [] }
+  const summary: SessionSummary = { id: '', file, delegationDepth: 0, userMessages: 0, turns: 0, usage: [], calls: [] }
   const byModel = new Map<string, ModelUsage>()
   lines.forEach((line, index) => {
     if (line.trim() === '') return
@@ -138,11 +152,21 @@ export async function readSessionLog(file: string): Promise<SessionSummary> {
           cacheWriteTokens: 0,
           reasoningTokens: 0,
         }
+        const call: ModelCall = {
+          provider,
+          model,
+          time: typeof event.time === 'number' ? event.time : null,
+          inputTokens: count(usage.inputTokens),
+          outputTokens: count(usage.outputTokens),
+          cacheReadTokens: count(usage.cacheReadTokens),
+          cacheWriteTokens: count(usage.cacheWriteTokens),
+        }
+        summary.calls.push(call)
         entry.calls += 1
-        entry.inputTokens += count(usage.inputTokens)
-        entry.outputTokens += count(usage.outputTokens)
-        entry.cacheReadTokens += count(usage.cacheReadTokens)
-        entry.cacheWriteTokens += count(usage.cacheWriteTokens)
+        entry.inputTokens += call.inputTokens
+        entry.outputTokens += call.outputTokens
+        entry.cacheReadTokens += call.cacheReadTokens
+        entry.cacheWriteTokens += call.cacheWriteTokens
         entry.reasoningTokens += count(usage.reasoningTokens)
         byModel.set(key, entry)
         break

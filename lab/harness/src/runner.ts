@@ -7,6 +7,8 @@ import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { priceUsage, totalCost, type ModelCatalog } from './catalog.ts'
 import type { Condition, Gate, LabTask, Loaded } from './experiment.ts'
+import { readExternalUsage } from './external-usage.ts'
+import { detectHostTools, type HostTools } from './host-tools.ts'
 import { RunRecord, type GateResult } from './record.ts'
 import { findSessionLogs, followUpMessages, mergeUsage, readSessionLog } from './session-log.ts'
 
@@ -43,6 +45,8 @@ export interface RunOptions {
   condition: Loaded<Condition>
   catalog?: ModelCatalog
   launcher?: Launcher
+  /** Host CLIs; detected when omitted. */
+  hostTools?: HostTools
   now?: () => Date
 }
 
@@ -123,6 +127,13 @@ export async function runExperiment(options: RunOptions): Promise<RunRecord> {
   if (task.value.fixture !== undefined) await cp(task.value.fixture, workspace, { recursive: true })
 
   const launcher = options.launcher ?? sourceLauncher(options.repoRoot)
+  const hostTools = options.hostTools ?? detectHostTools(options.repoRoot)
+  // Lab defaults, which a condition's env may override: no telemetry, and the
+  // host Claude Code for Claude delegation (see worker-claude-code.yml).
+  const labEnv: Record<string, string> = {
+    DSH_TELEMETRY_MODE: 'DISABLED',
+    ...(hostTools.claudeCode === null ? {} : { LAB_CLAUDE_EXECUTABLE: hostTools.claudeCode.path }),
+  }
   const args = [
     ...launcher.args,
     '--profile',
@@ -133,7 +144,7 @@ export async function runExperiment(options: RunOptions): Promise<RunRecord> {
   ]
   const agent = await runProcess(launcher.command, args, {
     cwd: workspace,
-    env: { ...process.env, ...launcher.env, ...condition.value.env, DSH_HOME: home },
+    env: { ...process.env, ...launcher.env, ...labEnv, ...condition.value.env, DSH_HOME: home },
     stdin: task.value.prompt,
     stdout: join(runDir, 'events.ndjson'),
     stderr: join(runDir, 'agent.stderr.log'),
@@ -143,10 +154,18 @@ export async function runExperiment(options: RunOptions): Promise<RunRecord> {
   for (const gate of task.value.gates) gates.push(await runGate(gate, workspace, gateLogs))
 
   const sessions = await Promise.all((await findSessionLogs(join(home, 'sessions'))).map(readSessionLog))
-  const usage = mergeUsage(sessions).map(u => ({
-    ...u,
-    cost: options.catalog === undefined ? null : priceUsage(options.catalog, u),
-  }))
+  const counted = [
+    ...mergeUsage(sessions).map(u => ({ ...u, source: 'dsh-session' as const, nativeCostEstimateUsd: null })),
+    ...(await readExternalUsage(join(home, 'lab-usage.jsonl'))).map(u => ({ ...u, source: 'adapter' as const })),
+  ]
+  const calls = sessions.flatMap(s => s.calls)
+  const pricings = counted.map(u => {
+    if (options.catalog === undefined) return { billing: 'unknown' as const, cost: null, peakCalls: null }
+    // Session-logged calls carry their times, so each is priced at the rate then in force.
+    const own = u.source === 'dsh-session' ? calls.filter(c => c.provider === u.provider && c.model === u.model) : undefined
+    return priceUsage(options.catalog, u, own)
+  })
+  const usage = counted.map((u, i) => ({ ...u, ...pricings[i]! }))
 
   const record = RunRecord.parse({
     version: 1,
@@ -158,6 +177,7 @@ export async function runExperiment(options: RunOptions): Promise<RunRecord> {
       repoCommit: gitHead(options.repoRoot),
       node: process.version,
       platform: `${platform()}-${arch()}`,
+      hostTools,
     },
     agent,
     gates,
@@ -168,7 +188,7 @@ export async function runExperiment(options: RunOptions): Promise<RunRecord> {
       turns: s.turns,
     })),
     usage,
-    totalCost: options.catalog === undefined ? null : totalCost(usage.map(u => u.cost)),
+    totalCost: totalCost(pricings),
     followUpMessages: followUpMessages(sessions),
   })
   await writeFile(join(runDir, 'run.json'), `${JSON.stringify(record, null, 2)}\n`)

@@ -36,6 +36,7 @@ const COLUMNS = [
   'input tok',
   'cache-read tok',
   'output tok',
+  'subscription tok',
   'cost',
   'sessions',
   'follow-ups',
@@ -44,6 +45,9 @@ const COLUMNS = [
 function row(run: RunRecord): string[] {
   const sum = (key: 'inputTokens' | 'cacheReadTokens' | 'outputTokens') =>
     String(run.usage.reduce((total, u) => total + u[key], 0))
+  const subscription = run.usage
+    .filter(u => u.billing === 'subscription')
+    .reduce((total, u) => total + u.inputTokens + u.cacheReadTokens + u.cacheWriteTokens + u.outputTokens, 0)
   const passed = run.gates.filter(g => g.passed).length
   return [
     run.runId,
@@ -55,7 +59,8 @@ function row(run: RunRecord): string[] {
     sum('inputTokens'),
     sum('cacheReadTokens'),
     sum('outputTokens'),
-    run.totalCost === null ? 'n/a' : `${run.totalCost.amount.toFixed(4)} ${run.totalCost.currency}`,
+    String(subscription),
+    run.totalCost === null ? 'n/a' : `${run.totalCost.amount.toFixed(6)} ${run.totalCost.currency}`,
     String(run.sessions.length),
     String(run.followUpMessages),
   ]

@@ -1,0 +1,10 @@
+version: 1
+id: baseline-deepseek-v4-pro
+description: >-
+  Control condition with the stronger DeepSeek model. One DSH headless
+  session on DeepSeek V4 Pro receives the task once and works until it
+  stops; no supervisor, no delegation, no follow-up from a person.
+launcher: dsh-headless
+patches:
+  - patches/plain-session-log.yml
+  - patches/model-deepseek-v4-pro.yml

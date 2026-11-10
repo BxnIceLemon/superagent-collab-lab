@@ -11,6 +11,16 @@ import { readRuns, toCsv, toMarkdown } from './summarize.ts'
 const LAB_DIR = resolve(dirname(fileURLToPath(import.meta.url)), '../..')
 const REPO_ROOT = resolve(LAB_DIR, '..')
 
+/** Loads credentials from the git-ignored lab/.env; variables already set win. */
+function loadLocalEnv(): void {
+  try {
+    process.loadEnvFile(join(LAB_DIR, '.env'))
+  } catch (error) {
+    // No .env is fine: credentials may come from the caller's environment.
+    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
+  }
+}
+
 const USAGE = `Usage:
   lab run --task <file> --condition <file> [--catalog <file>] [--results <dir>]
   lab summarize [--results <dir>] [--format md|csv]
@@ -71,6 +81,7 @@ async function main(argv: string[]): Promise<number> {
   }
 }
 
+loadLocalEnv()
 main(process.argv.slice(2)).then(
   code => process.exit(code),
   (error: unknown) => {

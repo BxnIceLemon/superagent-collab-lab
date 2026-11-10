@@ -1,0 +1,14 @@
+version: 1
+id: deepseek-flash-with-workers
+description: >-
+  One DSH headless session on DeepSeek V4.1 Flash that may delegate tasks to
+  Claude Code (subagent_claude_fable/opus/sonnet/haiku) and Codex
+  (subagent_codex_astra/sol/terra/luna) through the operator's local CLI
+  logins. No supervisor protocol or model selection: the agent decides by
+  itself whether, when and to whom to delegate.
+launcher: dsh-headless
+patches:
+  - patches/plain-session-log.yml
+  - patches/model-deepseek-flash.yml
+  - patches/worker-claude-code.yml
+  - patches/worker-codex.yml

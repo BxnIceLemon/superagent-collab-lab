@@ -23,6 +23,10 @@ export const RunRecord = z.object({
     repoCommit: z.string().nullable(),
     node: z.string(),
     platform: z.string(),
+    hostTools: z.object({
+      claudeCode: z.object({ path: z.string(), version: z.string() }).nullable(),
+      codexBundled: z.string().nullable(),
+    }),
   }),
   agent: z.object({
     code: z.number().int().nullable(),
@@ -48,10 +52,18 @@ export const RunRecord = z.object({
       cacheReadTokens: z.number().int().nonnegative(),
       cacheWriteTokens: z.number().int().nonnegative(),
       reasoningTokens: z.number().int().nonnegative(),
+      /** Where the tokens were counted: a DSH session log, or a delegation adapter's usage log. */
+      source: z.enum(['dsh-session', 'adapter']),
+      billing: z.enum(['per-token', 'subscription', 'unknown']),
+      /** Cash cost; null for subscription and uncatalogued models. */
       cost: Cost.nullable(),
+      /** Calls billed at peak rates; null unless billed per token. */
+      peakCalls: z.number().int().nonnegative().nullable(),
+      /** Claude Code's own USD estimate for subscription runs; not a bill. */
+      nativeCostEstimateUsd: z.number().nonnegative().nullable(),
     }),
   ),
-  /** Null when no catalog was given, a model was unpriced, or currencies differ. */
+  /** Cash cost of per-token models; null when a model is uncatalogued, currencies differ, or none is per-token. */
   totalCost: Cost.nullable(),
   /** Messages a person sent after the initial task: the human-attention measure. */
   followUpMessages: z.number().int().nonnegative(),

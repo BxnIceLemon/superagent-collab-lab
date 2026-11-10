@@ -1,0 +1,5 @@
+# Root agent model: DeepSeek V4 Pro on the official API.
+- id: agent-default-model
+  config:
+    provider: deepseek-official
+    model: deepseek-v4-pro

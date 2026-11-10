@@ -1,9 +1,10 @@
 version: 1
 id: baseline-headless
 description: >-
-  Control condition. One DSH headless session with the profile's default model
-  receives the task once and works until it stops; no supervisor, no model
-  selection, no follow-up from a person.
+  Control condition. One DSH headless session on DeepSeek V4.1 Flash receives
+  the task once and works until it stops; no supervisor, no delegation, no
+  follow-up from a person.
 launcher: dsh-headless
 patches:
   - patches/plain-session-log.yml
+  - patches/model-deepseek-flash.yml

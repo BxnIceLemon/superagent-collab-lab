@@ -1,22 +1,347 @@
-# Fixed model catalog, filled in by hand. Each figure records its source and
-# the date it was read, so runs can be repriced and audited. Taste ranks come
-# from public blind-test leaderboards: Design Arena and LMArena WebDev for
-# visual design, LMArena's Creative Writing category for copy.
+# Fixed model catalog, filled in by hand on 2026-11-10. Every figure records
+# its source and query date so runs can be repriced and audited.
 #
-# Entry shape (see harness/src/catalog.ts):
+# Billing. DeepSeek models are billed per token on the official API, with
+# peak rates on weekdays 01:00-04:00 and 06:00-10:00 UTC; Chinese public
+# holidays are off-peak all day and must be listed in exceptDates as they
+# are announced. Claude Code and Codex models run through the operator's
+# subscriptions (Claude Max 5x, ChatGPT Plus): tokens are recorded, cash
+# cost is the flat plan fee. Provider names match what the harness records:
+# DSH routes for DeepSeek, the adapter names claude-code and codex otherwise.
 #
-#   - provider: deepseek-official        # as DSH logs it in message.source
-#     model: deepseek-v4-flash
-#     price:
-#       currency: USD
-#       inputPerMTok: 0                  # uncached input
-#       outputPerMTok: 0
-#       cacheReadPerMTok: 0              # optional, defaults to inputPerMTok
-#       source: { name: ..., url: https://..., queriedAt: 2026-11-10 }
-#     benchmarks:
-#       - { name: ..., score: 0, source: { name: ..., url: https://..., queriedAt: 2026-11-10 } }
-#     taste:
-#       visual: { rank: 1, source: { name: Design Arena, url: https://www.designarena.ai, queriedAt: 2026-11-10 } }
-#       copy: { rank: 1, source: { name: LMArena Creative Writing, url: https://lmarena.ai/leaderboard, queriedAt: 2026-11-10 } }
+# Taste ranks. Placements on public blind-test leaderboards: Arena WebDev and
+# Design Arena for visual design, Arena Creative Writing for copy. A
+# leaderboard entry names its reasoning setting, which may differ from the
+# setting a run uses. Ranges are recorded as rank..rankUpper. Placements were
+# read from the pages on the query date and should be re-checked against the
+# live boards before publication. Models absent from a board have no entry.
 version: 1
-models: []
+models:
+- provider: deepseek-official
+  model: deepseek-flash
+  price:
+    currency: USD
+    inputPerMTok: 0.15
+    outputPerMTok: 0.6
+    cacheReadPerMTok: 0.003
+    peak:
+      inputPerMTok: 0.3
+      outputPerMTok: 1.2
+      cacheReadPerMTok: 0.006
+      windows:
+      - weekdays: [1, 2, 3, 4, 5]
+        start: '01:00'
+        end: '04:00'
+      - weekdays: [1, 2, 3, 4, 5]
+        start: '06:00'
+        end: '10:00'
+      exceptDates:
+      - '2027-01-01'
+    source:
+      name: DeepSeek API pricing
+      url: https://api-docs.deepseek.com/quick_start/pricing
+      queriedAt: '2026-11-10'
+  taste:
+    visual:
+    - source:
+        name: Arena WebDev leaderboard (Code Arena, Overall)
+        url: https://arena.ai/leaderboard/webdev
+        queriedAt: '2026-11-10'
+      entry: DeepSeek-V4.1-Flash-20261017 (Max)
+      rank: 17
+      score: 1664
+    - source:
+        name: Design Arena leaderboard (Overall Agentic)
+        url: https://www.designarena.ai/leaderboard
+        queriedAt: '2026-11-10'
+      entry: DeepSeek-V4.1-Flash (1017)
+      rank: 6
+      score: 1301
+    copy:
+    - source:
+        name: Arena Text leaderboard, Creative Writing
+        url: https://arena.ai/leaderboard/text/creative-writing
+        queriedAt: '2026-11-10'
+      entry: DeepSeek-V4.1-Flash-20260910 (Max)
+      rank: 61
+      score: 1440
+- provider: deepseek-official
+  model: deepseek-v4-pro
+  price:
+    currency: USD
+    inputPerMTok: 0.66
+    outputPerMTok: 1.98
+    cacheReadPerMTok: 0.022
+    peak:
+      inputPerMTok: 1.32
+      outputPerMTok: 3.96
+      cacheReadPerMTok: 0.044
+      windows:
+      - weekdays: [1, 2, 3, 4, 5]
+        start: '01:00'
+        end: '04:00'
+      - weekdays: [1, 2, 3, 4, 5]
+        start: '06:00'
+        end: '10:00'
+      exceptDates:
+      - '2027-01-01'
+    source:
+      name: DeepSeek API pricing
+      url: https://api-docs.deepseek.com/quick_start/pricing
+      queriedAt: '2026-11-10'
+  taste:
+    visual:
+    - source:
+        name: Arena WebDev leaderboard (Code Arena, Overall)
+        url: https://arena.ai/leaderboard/webdev
+        queriedAt: '2026-11-10'
+      entry: DeepSeek-V4-Pro (High, 20260813)
+      rank: 37
+      score: 1581
+      rankUpper: 46
+    copy:
+    - source:
+        name: Arena Text leaderboard, Creative Writing
+        url: https://arena.ai/leaderboard/text/creative-writing
+        queriedAt: '2026-11-10'
+      entry: DeepSeek-V4-Pro
+      rank: 48
+      score: 1447
+- provider: claude-code
+  model: claude-fable-5-2
+  billing: subscription
+  plan:
+    name: Claude Max (5x)
+    monthlyPrice:
+      currency: USD
+      amount: 100
+    source:
+      name: Claude pricing
+      url: https://claude.com/pricing
+      queriedAt: '2026-11-10'
+  taste:
+    visual:
+    - source:
+        name: Arena WebDev leaderboard (Code Arena, Overall)
+        url: https://arena.ai/leaderboard/webdev
+        queriedAt: '2026-11-10'
+      entry: Claude Fable 5.2 (xHigh)
+      rank: 1
+      score: 1832
+    - source:
+        name: Design Arena leaderboard (Overall Agentic)
+        url: https://www.designarena.ai/leaderboard
+        queriedAt: '2026-11-10'
+      entry: Claude Fable 5.2
+      rank: 4
+      score: 1349
+    copy: []
+- provider: claude-code
+  model: claude-opus-5-5
+  billing: subscription
+  plan:
+    name: Claude Max (5x)
+    monthlyPrice:
+      currency: USD
+      amount: 100
+    source:
+      name: Claude pricing
+      url: https://claude.com/pricing
+      queriedAt: '2026-11-10'
+  taste:
+    visual:
+    - source:
+        name: Arena WebDev leaderboard (Code Arena, Overall)
+        url: https://arena.ai/leaderboard/webdev
+        queriedAt: '2026-11-10'
+      entry: Claude Opus 5.5 (Max)
+      rank: 2
+      score: 1813
+    - source:
+        name: Design Arena leaderboard (Overall Agentic)
+        url: https://www.designarena.ai/leaderboard
+        queriedAt: '2026-11-10'
+      entry: Claude Opus 5.5 (high)
+      rank: 1
+      score: 1459
+    copy:
+    - source:
+        name: Arena Text leaderboard, Creative Writing
+        url: https://arena.ai/leaderboard/text/creative-writing
+        queriedAt: '2026-11-10'
+      entry: Claude Opus 5.5 (High)
+      rank: 2
+      score: 1518
+- provider: claude-code
+  model: claude-sonnet-5-5
+  billing: subscription
+  plan:
+    name: Claude Max (5x)
+    monthlyPrice:
+      currency: USD
+      amount: 100
+    source:
+      name: Claude pricing
+      url: https://claude.com/pricing
+      queriedAt: '2026-11-10'
+  taste:
+    visual:
+    - source:
+        name: Arena WebDev leaderboard (Code Arena, Overall)
+        url: https://arena.ai/leaderboard/webdev
+        queriedAt: '2026-11-10'
+      entry: Claude Sonnet 5.5 (xHigh)
+      rank: 3
+      score: 1772
+    - source:
+        name: Design Arena leaderboard (Overall Agentic)
+        url: https://www.designarena.ai/leaderboard
+        queriedAt: '2026-11-10'
+      entry: Claude Sonnet 5.5
+      rank: 8
+      score: 1280
+    copy:
+    - source:
+        name: Arena Text leaderboard, Creative Writing
+        url: https://arena.ai/leaderboard/text/creative-writing
+        queriedAt: '2026-11-10'
+      entry: Claude Sonnet 5.5 (xHigh)
+      rank: 25
+      score: 1465
+- provider: claude-code
+  model: claude-haiku-5-5
+  billing: subscription
+  plan:
+    name: Claude Max (5x)
+    monthlyPrice:
+      currency: USD
+      amount: 100
+    source:
+      name: Claude pricing
+      url: https://claude.com/pricing
+      queriedAt: '2026-11-10'
+  taste:
+    visual:
+    - source:
+        name: Arena WebDev leaderboard (Code Arena, Overall)
+        url: https://arena.ai/leaderboard/webdev
+        queriedAt: '2026-11-10'
+      entry: Claude Haiku 5.5 (High)
+      rank: 33
+      score: 1594
+      rankUpper: 43
+    copy: []
+- provider: codex
+  model: gpt-6-astra
+  billing: subscription
+  plan:
+    name: ChatGPT Plus
+    source:
+      name: ChatGPT pricing
+      url: https://chatgpt.com/pricing
+      queriedAt: '2026-11-10'
+  taste:
+    visual:
+    - source:
+        name: Arena WebDev leaderboard (Code Arena, Overall)
+        url: https://arena.ai/leaderboard/webdev
+        queriedAt: '2026-11-10'
+      entry: GPT-6 Astra (Max)
+      rank: 5
+      score: 1765
+    - source:
+        name: Design Arena leaderboard (Overall Agentic)
+        url: https://www.designarena.ai/leaderboard
+        queriedAt: '2026-11-10'
+      entry: GPT-6 Astra (max)
+      rank: 3
+      score: 1390
+    copy:
+    - source:
+        name: Arena Text leaderboard, Creative Writing
+        url: https://arena.ai/leaderboard/text/creative-writing
+        queriedAt: '2026-11-10'
+      entry: GPT-6 Astra (Max)
+      rank: 39
+      score: 1450
+- provider: codex
+  model: gpt-5.6-sol
+  billing: subscription
+  plan:
+    name: ChatGPT Plus
+    source:
+      name: ChatGPT pricing
+      url: https://chatgpt.com/pricing
+      queriedAt: '2026-11-10'
+  taste:
+    visual:
+    - source:
+        name: Arena WebDev leaderboard (Code Arena, Overall)
+        url: https://arena.ai/leaderboard/webdev
+        queriedAt: '2026-11-10'
+      entry: GPT-5.6 Sol (xHigh, Codex Harness)
+      rank: 25
+      score: 1615
+      rankUpper: 36
+    copy:
+    - source:
+        name: Arena Text leaderboard, Creative Writing
+        url: https://arena.ai/leaderboard/text/creative-writing
+        queriedAt: '2026-11-10'
+      entry: GPT-5.6 Sol (xHigh)
+      rank: 17
+      score: 1471
+- provider: codex
+  model: gpt-5.6-terra
+  billing: subscription
+  plan:
+    name: ChatGPT Plus
+    source:
+      name: ChatGPT pricing
+      url: https://chatgpt.com/pricing
+      queriedAt: '2026-11-10'
+  taste:
+    visual:
+    - source:
+        name: Arena WebDev leaderboard (Code Arena, Overall)
+        url: https://arena.ai/leaderboard/webdev
+        queriedAt: '2026-11-10'
+      entry: GPT-5.6 Terra (xHigh, Codex Harness)
+      rank: 57
+      score: 1520
+      rankUpper: 67
+    copy:
+    - source:
+        name: Arena Text leaderboard, Creative Writing
+        url: https://arena.ai/leaderboard/text/creative-writing
+        queriedAt: '2026-11-10'
+      entry: GPT-5.6 Terra (xHigh)
+      rank: 75
+      score: 1430
+- provider: codex
+  model: gpt-5.6-luna
+  billing: subscription
+  plan:
+    name: ChatGPT Plus
+    source:
+      name: ChatGPT pricing
+      url: https://chatgpt.com/pricing
+      queriedAt: '2026-11-10'
+  taste:
+    visual:
+    - source:
+        name: Arena WebDev leaderboard (Code Arena, Overall)
+        url: https://arena.ai/leaderboard/webdev
+        queriedAt: '2026-11-10'
+      entry: GPT-5.6 Luna (xHigh, Codex Harness)
+      rank: 57
+      score: 1519
+      rankUpper: 68
+    copy:
+    - source:
+        name: Arena Text leaderboard, Creative Writing
+        url: https://arena.ai/leaderboard/text/creative-writing
+        queriedAt: '2026-11-10'
+      entry: GPT-5.6 Luna (xHigh)
+      rank: 94
+      score: 1410

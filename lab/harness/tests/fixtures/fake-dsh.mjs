@@ -34,7 +34,26 @@ log('session-child', 1, [
   { type: 'turn/end', data: {} },
 ])
 
+// What the Claude Code and Codex adapters append for each delegation.
+writeFileSync(
+  join(process.env.DSH_HOME, 'lab-usage.jsonl'),
+  [
+    {
+      adapter: 'claude-code',
+      totalCostUsd: 0.25,
+      modelUsage: { 'claude-x': { inputTokens: 10, outputTokens: 20, cacheReadInputTokens: 300, cacheCreationInputTokens: 40, costUSD: 0.25 } },
+    },
+    {
+      adapter: 'codex',
+      model: 'gpt-x',
+      modelProvider: 'openai',
+      tokenUsage: { total: { inputTokens: 1000, cachedInputTokens: 600, outputTokens: 70, reasoningOutputTokens: 30, totalTokens: 1070 } },
+    },
+  ].map(r => JSON.stringify(r)).join('\n') + '\n',
+)
+
 writeFileSync('README.md', `# ${task}\n`)
 process.stdout.write(JSON.stringify({ type: 'session', id: 'session-root' }) + '\n')
 process.stdout.write(JSON.stringify({ type: 'final', text: 'done' }) + '\n')
 process.stderr.write(`args: ${process.argv.slice(2).join(' ')}\n`)
+process.stderr.write(`env: DSH_TELEMETRY_MODE=${process.env.DSH_TELEMETRY_MODE} LAB_CLAUDE_EXECUTABLE=${process.env.LAB_CLAUDE_EXECUTABLE}\n`)
