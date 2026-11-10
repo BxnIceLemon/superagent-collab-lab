@@ -41,9 +41,11 @@ kind: "package-bundle"
 |---|---|---|
 | `providerName` | `claude-code` | `ctx.subagents` 上的非空注册名称；每个已挂载实例都需要唯一值 |
 | `model` | Claude 原生设置 | 为本提供方实例的每次运行固定的可选非空模型名称；省略时不发送 SDK 覆盖 |
+| `executable` | SDK 自带的 CLI | SDK 运行的 Claude Code 可执行文件的绝对路径；本机安装的版本可能支持更新的模型 |
 | `env` | `{}` | 叠加在已清理凭据的父环境之上的显式 SDK/CLI 环境 |
 | `permissionMode` | `dontAsk` | 为本提供方实例的每次运行固定的原生非交互权限策略 |
 | `disposeGraceMs` | `3000` | 共享 managed-range owner 各终止层级之间的宽限 |
+| `usageLog` | 未设置 | 绝对路径的 JSONL 文件，记录每次运行的原生用量报告；未设置时不记录 |
 
 | `permissionMode` 值 | 原生行为 |
 |---|---|

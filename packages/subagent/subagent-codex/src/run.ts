@@ -29,6 +29,7 @@ import type {
 } from '@deepseek-ai/dsh-subprocess'
 import {
   CodexAppServerWire,
+  type CodexUsage,
   type CodexWireFailureFacts,
 } from './wire.ts'
 
@@ -152,6 +153,8 @@ export interface CodexRunSpec {
   readonly spawn: (spec: SubprocessSpawnSpec) => SubprocessHandle
   /** Diagnostic sink for a post-publication error flattened into a result. */
   readonly onError?: (error: Error, stopReason: SubagentStopReason) => void
+  /** Host accounting sink for the thread's native usage once the turn settles. */
+  readonly onUsage?: (usage: CodexUsage) => void
 }
 
 function thrown(value: unknown): Error {
@@ -377,7 +380,7 @@ export async function startCodexRun(
       throw error
     },
   )
-  const result: Promise<SubagentResult> = settleRunResult({
+  const settled: Promise<SubagentResult> = settleRunResult({
     attempt: async () => {
       try {
         const terminal = await Promise.race([
@@ -426,6 +429,11 @@ export async function startCodexRun(
     onError: spec.onError,
     signal: request.signal,
     onAbort,
+  })
+  // Report the thread's final cumulative usage however the run settles.
+  const result = settled.finally(() => {
+    const usage = wire.collectUsage()
+    if (usage !== undefined) spec.onUsage?.(usage)
   })
 
   return subprocessRunHandle({

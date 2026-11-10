@@ -15,6 +15,16 @@ import type { CodexPermissionMode } from './run.ts'
 
 type JsonObject = Record<string, unknown>
 
+/** Native thread usage reported by the app-server, unconverted. */
+export interface CodexUsage {
+  /** Model named by the `thread/start` response. */
+  readonly model: string
+  /** Model provider named by the `thread/start` response. */
+  readonly modelProvider: string
+  /** Latest `thread/tokenUsage/updated` `tokenUsage` payload (`total`, `last`, ...). */
+  readonly tokenUsage: Readonly<JsonObject>
+}
+
 /** Product facts owned by the Codex wire after publication. */
 export interface CodexWireFailureFacts {
   readonly stage: 'turn-start' | 'turn'
@@ -220,6 +230,8 @@ export class CodexAppServerWire {
   private inputEnded = false
   private terminalObserved = false
   private closed = false
+  private threadModel: { readonly model: string; readonly modelProvider: string } | undefined
+  private tokenUsage: JsonObject | undefined
 
   constructor(
     private readonly input: Readable,
@@ -299,6 +311,18 @@ export class CodexAppServerWire {
       throw new Error('subagent-codex: app-server did not create an ephemeral thread')
     }
     this.threadId = id
+    if (typeof response.model === 'string' && typeof response.modelProvider === 'string') {
+      this.threadModel = { model: response.model, modelProvider: response.modelProvider }
+    }
+  }
+
+  /**
+   * The thread's native cumulative token usage, as last reported.
+   * @returns the model and the latest `thread/tokenUsage/updated` payload, when both were observed.
+   */
+  collectUsage(): CodexUsage | undefined {
+    if (this.threadModel === undefined || this.tokenUsage === undefined) return undefined
+    return { ...this.threadModel, tokenUsage: this.tokenUsage }
   }
 
   /**
@@ -679,6 +703,12 @@ export class CodexAppServerWire {
         this.lastUnphasedAnswer = text
       } else if (item.phase !== 'commentary') {
         throw new Error(`subagent-codex: app-server returned an unknown agent message phase ${JSON.stringify(item.phase)}`)
+      }
+      return
+    }
+    if (method === 'thread/tokenUsage/updated') {
+      if (params.threadId === this.threadId) {
+        this.tokenUsage = object(params.tokenUsage, 'thread/tokenUsage/updated tokenUsage')
       }
       return
     }

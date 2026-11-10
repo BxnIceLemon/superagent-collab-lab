@@ -9,6 +9,7 @@
 import { randomUUID } from 'node:crypto'
 import {
   query as officialQuery,
+  type ModelUsage,
   type Options,
   type Query,
   type SDKMessage,
@@ -152,6 +153,8 @@ export interface ClaudeCodeRunSpec {
   readonly cwd: string
   /** Profile-selected native model; omitted to preserve Claude settings. */
   readonly model?: string
+  /** Profile-selected Claude Code executable; omitted to use the SDK's bundled CLI. */
+  readonly executable?: string
   /** Profile-selected native non-interactive permission mode. */
   readonly permissionMode: ClaudeCodePermissionMode
   /** Explicit deployment/test environment layered after shared scrubbing. */
@@ -162,6 +165,25 @@ export interface ClaudeCodeRunSpec {
   readonly spawn: (spec: SubprocessSpawnSpec) => SubprocessHandle
   /** Host diagnostic sink for a product failure kept outside model-visible text. */
   readonly onError?: (error: Error, stopReason: SubagentStopReason) => void
+  /** Host accounting sink for the SDK's terminal usage, kept outside model-visible text. */
+  readonly onUsage?: (usage: ClaudeCodeUsage) => void
+}
+
+/** Native usage the SDK reports on the run's terminal result, unconverted. */
+export interface ClaudeCodeUsage {
+  /** The SDK's own cost estimate in USD; not a billing statement. */
+  readonly totalCostUsd: number
+  /** Per-model native token counts, including subagent and auxiliary calls. */
+  readonly modelUsage: Readonly<Record<string, ModelUsage>>
+}
+
+/**
+ * Project the native usage carried by an SDK terminal result.
+ * @param message - success or error result.
+ * @returns its cost estimate and per-model counts.
+ */
+export function claudeCodeUsage(message: SDKResultMessage): ClaudeCodeUsage {
+  return { totalCostUsd: message.total_cost_usd, modelUsage: message.modelUsage }
 }
 
 function thrown(value: unknown): Error {
@@ -230,13 +252,13 @@ export function successfulResult(message: SDKResultMessage): string {
  * iterator completion.
  * @param query - published official SDK query.
  * @param onPermissionDenied - records a safe fact when the SDK reports native denial.
- * @param onResult - records that the SDK supplied a terminal result message.
+ * @param onResult - receives each terminal result message the SDK supplies.
  * @returns the completed shared result.
  */
 export async function consumeClaudeQuery(
   query: AsyncIterable<SDKMessage>,
   onPermissionDenied?: () => void,
-  onResult?: () => void,
+  onResult?: (message: SDKResultMessage) => void,
 ): Promise<SubagentResult> {
   let answer: string | undefined
   for await (const message of query) {
@@ -245,7 +267,7 @@ export async function consumeClaudeQuery(
       continue
     }
     if (message.type !== 'result') continue
-    onResult?.()
+    onResult?.(message)
     answer = successfulResult(message)
   }
   if (answer === undefined) {
@@ -326,6 +348,7 @@ export function claudeQueryOptions(
     abortController: controller,
     cwd: spec.cwd,
     ...spec.model === undefined ? {} : { model: spec.model },
+    ...spec.executable === undefined ? {} : { pathToClaudeCodeExecutable: spec.executable },
     env: { ...scrubbedParentEnv(), ...spec.env },
     persistSession: false,
     disallowedTools: spec.permissionMode === 'plan'
@@ -530,8 +553,9 @@ export async function startClaudeCodeRun(
               'denied',
               'Claude Code denied the request before an interactive prompt',
             ))
-          }, () => {
+          }, (message) => {
             receivedResult = true
+            spec.onUsage?.(claudeCodeUsage(message))
           }),
           publishedProcessFailure,
         ])

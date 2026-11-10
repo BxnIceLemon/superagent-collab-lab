@@ -44,6 +44,7 @@ The layer inserts Host rows only, so any profile can select it, including the sh
 | `env` | `{}` | Explicit child environment layered over the credential-scrubbed parent environment |
 | `permissionMode` | `never` | Native non-interactive approval and sandbox mode fixed for every thread from this provider instance |
 | `disposeGraceMs` | `3000` | Grace between the shared managed-range owner's termination tiers |
+| `usageLog` | unset | Absolute JSONL file that receives each run's native usage report; unset records nothing |
 
 | `permissionMode` value | `thread/start` fields | Native behavior |
 |---|---|---|

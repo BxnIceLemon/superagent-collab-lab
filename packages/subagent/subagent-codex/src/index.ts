@@ -26,6 +26,8 @@ import {
   type CodexPermissionMode,
   type CodexRunSpec,
 } from './run.ts'
+import { openUsageLog, type UsageLogWriter } from './usage-log.ts'
+import type { CodexUsage } from './wire.ts'
 
 export const name = 'subagent-codex'
 export const inject = ['subagents', 'subprocess']
@@ -47,6 +49,11 @@ export interface Config {
   permissionMode?: CodexPermissionMode
   /** Grace in milliseconds between app-server managed-range termination tiers. */
   disposeGraceMs?: number
+  /**
+   * Absolute JSONL file that receives each run's native thread usage; omitted
+   * to record nothing. Used for cost accounting outside the parent Session.
+   */
+  usageLog?: string
 }
 
 export const Config: z<Config> = z.object({
@@ -56,9 +63,12 @@ export const Config: z<Config> = z.object({
   permissionMode: z.union([...CODEX_PERMISSION_MODES])
     .default(DEFAULT_CODEX_PERMISSION_MODE),
   disposeGraceMs: z.number().default(DEFAULT_DISPOSE_GRACE_MS),
+  usageLog: z.string().min(1),
 })
 
-type ResolvedConfig = Omit<Required<Config>, 'model'> & Pick<Config, 'model'>
+type ResolvedConfig = Omit<Required<Config>, 'model' | 'usageLog'>
+  & Pick<Config, 'model'>
+  & { readonly usageLog?: UsageLogWriter }
 
 class CodexProvider implements SubagentProvider {
   readonly capabilities: SubagentCapabilities = NO_START_CAPABILITIES
@@ -82,6 +92,7 @@ class CodexProvider implements SubagentProvider {
       }
       throw codexStartupFailure(error)
     }
+    const usageLog = this.config.usageLog
     const spec: CodexRunSpec = {
       cwd,
       ...this.config.model === undefined ? {} : { model: this.config.model },
@@ -94,6 +105,13 @@ class CodexProvider implements SubagentProvider {
           `subagent-codex "${this.name}": child run failed (${stopReason}): ${error.message}`,
         )
       },
+      ...usageLog === undefined
+        ? {}
+        : {
+          onUsage: (usage: CodexUsage) => {
+            usageLog({ adapter: 'codex', providerName: this.name, cwd, ...usage })
+          },
+        },
     }
     return startCodexRun(request, spec)
   }
@@ -111,6 +129,13 @@ export function apply(ctx: Context, config: Config): void {
     env: config.env as Record<string, string>,
     permissionMode: config.permissionMode ?? DEFAULT_CODEX_PERMISSION_MODE,
     disposeGraceMs: config.disposeGraceMs as number,
+    ...config.usageLog === undefined
+      ? {}
+      : {
+        usageLog: openUsageLog('subagent-codex', config.usageLog, (error) => {
+          ctx.logger.error('subagent-codex: usage log append failed: %o', error)
+        }),
+      },
   }
   assertPositiveFinite(
     'subagent-codex',

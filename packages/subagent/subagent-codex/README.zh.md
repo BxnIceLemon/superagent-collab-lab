@@ -44,6 +44,7 @@ kind: "package-bundle"
 | `env` | `{}` | 叠加在已清理凭据的父环境之上的显式子进程环境 |
 | `permissionMode` | `never` | 为本提供方实例的每个线程固定的原生非交互审批与沙箱模式 |
 | `disposeGraceMs` | `3000` | 共享 managed-range owner 各终止层级之间的宽限 |
+| `usageLog` | 未设置 | 绝对路径的 JSONL 文件，记录每次运行的原生用量报告；未设置时不记录 |
 
 | `permissionMode` 值 | `thread/start` 字段 | 原生行为 |
 |---|---|---|
