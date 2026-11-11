@@ -11,6 +11,7 @@
   },
   "scripts": {
     "lab": "node harness/src/cli.ts",
-    "check": "pnpm --filter collab-lab-harness check"
+    "build": "pnpm --filter dsh-superagent build",
+    "check": "pnpm --filter collab-lab-harness --filter collab-lab-superagent-source check"
   }
 }

@@ -3,6 +3,7 @@
 packages:
   - harness
   - superagent
+  - superagent-lab
 
 # pnpm blocks dependency install scripts unless they are listed here.
 allowBuilds:

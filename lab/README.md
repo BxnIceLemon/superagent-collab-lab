@@ -16,6 +16,7 @@ adapters (an opt-in usage log and newer bundled CLIs) listed in
 | `conditions/` | Condition files: how the agent is launched, plus DSH loader patches in `conditions/patches/` |
 | `catalog/models.yaml` | Fixed model catalog: prices, plans and taste ranks, each with its source and query date |
 | `superagent/` | [dsh-superagent-prototype](https://github.com/deepseek-ai/dsh-superagent-prototype) at commit `8c32a9dc5d`, imported with `git subtree` and unmodified |
+| `superagent-lab/` | What the prototype needs to run offline: the `lab-task` Source, an offline stand-in for `gh`, and the lab's Delivery requirements prompt section |
 | `results/` | Run outputs; ignored by git except where a run is committed on purpose |
 
 ## Requirements
@@ -34,8 +35,9 @@ corepack pnpm install --frozen-lockfile   # DSH workspace
 corepack pnpm run build:artifacts         # DSH build used by source launches
 cd lab
 corepack pnpm install --frozen-lockfile   # lab workspace
+corepack pnpm build                       # dsh-superagent, for the super-agent condition
 cp .env.example .env                      # then set DEEPSEEK_API_KEY
-corepack pnpm check                       # harness typecheck and tests
+corepack pnpm check                       # typecheck and tests of harness/ and superagent-lab/
 node harness/src/cli.ts validate          # tasks, conditions and catalog
 ```
 
@@ -60,8 +62,10 @@ Each run gets its own directory `results/<UTC time>-<task>-<condition>/`:
 | `workspace/` | The agent's working directory, seeded from the task fixture if any |
 | `dsh-home/` | A fresh `DSH_HOME`, so no profile, setting or session from elsewhere leaks in |
 | `dsh-home/lab-usage.jsonl` | Native usage reports of Claude Code and Codex delegations |
-| `events.ndjson` | DSH headless `--json` event stream |
+| `events.ndjson` | DSH headless `--json` event stream (headless conditions) |
 | `agent.stderr.log` | DSH diagnostics |
+| `inbox.jsonl`, `outbox.jsonl` | The operator's messages and the agent's replies (super-agent condition) |
+| `superagent/`, `tickets/` | The prototype's state directory, and one link per Ticket to `workspace/` (super-agent condition) |
 | `gates/` | Output of each gate command |
 | `run.json` | The run record (schema in `harness/src/record.ts`) |
 
@@ -88,7 +92,7 @@ neither the host's CLI updates nor its default models.
 | `baseline-headless` | One DSH session on DeepSeek V4.1 Flash, no delegation |
 | `baseline-deepseek-v4-pro` | One DSH session on DeepSeek V4 Pro, no delegation |
 | `deepseek-flash-with-workers` | One DSH session on V4.1 Flash with all eight worker tools; the agent decides on its own whether to delegate |
-| Original super-agent (`superagent/`) | Planned |
+| `superagent-deepseek-flash` | The unmodified dsh-superagent prototype on V4.1 Flash, offline; see below |
 | Supervisor with model selection | Planned |
 
 ## Measures
@@ -100,7 +104,8 @@ neither the host's CLI updates nor its default models.
 | `usage[].billing`, `cost`, `peakCalls` | From the catalog. Per-token calls are priced one by one at the rate in force at their event time; `peakCalls` counts those billed at peak rates. Subscription models have no cash cost |
 | `usage[].nativeCostEstimateUsd` | Claude Code's own API-equivalent estimate for a subscription run; not a bill |
 | `totalCost` | Cash cost of per-token models; null when a model is missing from the catalog or currencies differ |
-| `followUpMessages` | Messages with source kind `user` after the first one, in sessions of delegation depth 0: the human-attention measure |
+| `followUpMessages` | Messages a person sent after the task: the human-attention measure. Headless conditions count messages with source kind `user` after the first one, in sessions of delegation depth 0; the super-agent condition counts operator messages in `inbox.jsonl` after the first |
+| `superagent` | Super-agent condition only: `stopReason` (below), each Ticket's state, stage, outcome and summary, and the number of replies |
 | `gates[]` | Exit status of each task gate, run in the workspace after the agent stops |
 | `agent.wallMs` | Wall time of the agent process |
 | `environment` | Repository commit, Node version, platform, the bundled Agent SDK, Claude Code and Codex versions, and the host Claude Code version for reference |
@@ -108,6 +113,36 @@ neither the host's CLI updates nor its default models.
 Session logs must be plain JSONL for the harness to read them. Every condition
 applies `conditions/patches/plain-session-log.yml`, which turns off the
 default Zstandard compression and changes nothing else.
+
+## The super-agent condition
+
+The prototype is run as its own documentation describes, on a DSH Web
+profile made from the shipped template inside the run's `DSH_HOME`, with two
+departures needed to run it without GitHub:
+
+- **Account check.** The prototype requires a GitHub repository and an agent
+  account with push access before it starts. Its GitHub Source is saved
+  turned off, with `superagent-lab/bin/gh-offline` as the agent CLI. That
+  script answers the two setup checks for a fictitious account and
+  repository and fails every other call, so a worker that tries GitHub
+  learns it cannot.
+- **Where the task comes from and where the result goes.** The `lab-task`
+  Source (`superagent-lab/src/index.ts`) turns each line of `inbox.jsonl`
+  into a direct request from `operator`, the only sender on the allowed list,
+  and appends the agent's messages to `outbox.jsonl`. Each Ticket's directory
+  is a link to the run workspace, made by the prepare command. The Delivery
+  requirements prompt section is replaced by
+  `superagent-lab/prompts/delivery.md`, which says the directory is the
+  deliverable; every other prompt section, the Policy rules and the Eval mode
+  keep their defaults.
+
+The harness configures the instance through the prototype's Management API,
+posts the task and reads the Tickets every `pollSec` seconds. `stopReason`
+records why it stopped: `settled` once every Ticket ended, `needs-person`
+once the open Tickets all wait for a person, each after `quietSec` with
+nothing in progress; `no-ticket` when none appeared within `noTicketMin`;
+`timeout` after `timeoutMin`; `server-exited` if the server stopped on its
+own. No one answers the agent during a run.
 
 ## Model catalog
 

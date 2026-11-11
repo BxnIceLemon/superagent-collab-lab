@@ -47,3 +47,6 @@ versions they were written for.
 The lab's own work is confined to `lab/` (excluding `lab/superagent/`),
 `.github/README.md` and `CITATION.cff`, and is licensed under
 [lab/LICENSE](LICENSE). The prototype in `lab/superagent/` is unmodified.
+`lab/superagent-lab/` runs it through its documented Source interface;
+`lab/superagent-lab/src/host.ts` restates the type declarations of that
+interface from the prototype.

@@ -11,6 +11,7 @@ import { readExternalUsage } from './external-usage.ts'
 import { detectHostTools, type HostTools } from './host-tools.ts'
 import { RunRecord, type GateResult } from './record.ts'
 import { findSessionLogs, followUpMessages, mergeUsage, readSessionLog } from './session-log.ts'
+import { runSuperagent, superagentPaths, type SuperagentResult } from './superagent.ts'
 
 /** The command that starts `dsh`; the runner appends the launcher and app arguments. */
 export interface Launcher {
@@ -40,6 +41,8 @@ export function sourceLauncher(repoRoot: string): Launcher {
 
 export interface RunOptions {
   repoRoot: string
+  /** The lab directory; defaults to `<repoRoot>/lab`. */
+  labDir?: string
   resultsDir: string
   task: Loaded<LabTask>
   condition: Loaded<Condition>
@@ -130,21 +133,32 @@ export async function runExperiment(options: RunOptions): Promise<RunRecord> {
   const hostTools = options.hostTools ?? detectHostTools(options.repoRoot)
   // Lab default, which a condition's env may override: no telemetry.
   const labEnv: Record<string, string> = { DSH_TELEMETRY_MODE: 'DISABLED' }
-  const args = [
-    ...launcher.args,
-    '--profile',
-    'headless',
-    ...condition.value.patches.flatMap(p => ['--patch', p]),
-    '--json',
-    '-',
-  ]
-  const agent = await runProcess(launcher.command, args, {
-    cwd: workspace,
-    env: { ...process.env, ...launcher.env, ...labEnv, ...condition.value.env, DSH_HOME: home },
-    stdin: task.value.prompt,
-    stdout: join(runDir, 'events.ndjson'),
-    stderr: join(runDir, 'agent.stderr.log'),
-  })
+  const env = { ...process.env, ...launcher.env, ...labEnv, ...condition.value.env, DSH_HOME: home }
+  let agent: Exit
+  let superagent: SuperagentResult | undefined
+  if (condition.value.launcher === 'dsh-headless') {
+    const args = [...launcher.args, '--profile', 'headless', ...condition.value.patches.flatMap(p => ['--patch', p]), '--json', '-']
+    agent = await runProcess(launcher.command, args, {
+      cwd: workspace,
+      env,
+      stdin: task.value.prompt,
+      stdout: join(runDir, 'events.ndjson'),
+      stderr: join(runDir, 'agent.stderr.log'),
+    })
+  } else {
+    superagent = await runSuperagent({
+      launcher,
+      paths: superagentPaths(options.labDir ?? join(options.repoRoot, 'lab')),
+      runDir,
+      workspace,
+      home,
+      prompt: task.value.prompt,
+      patches: condition.value.patches,
+      env,
+      options: condition.value.superagent,
+    })
+    agent = { code: superagent.code, signal: superagent.signal, wallMs: superagent.wallMs }
+  }
 
   const gates: GateResult[] = []
   for (const gate of task.value.gates) gates.push(await runGate(gate, workspace, gateLogs))
@@ -185,7 +199,11 @@ export async function runExperiment(options: RunOptions): Promise<RunRecord> {
     })),
     usage,
     totalCost: totalCost(pricings),
-    followUpMessages: followUpMessages(sessions),
+    // The prototype's Sessions receive its own relays, not the person's messages; the operator's inbox counts those.
+    followUpMessages: superagent === undefined ? followUpMessages(sessions) : Math.max(0, superagent.operatorMessages - 1),
+    ...(superagent === undefined
+      ? {}
+      : { superagent: { stopReason: superagent.stopReason, tickets: superagent.tickets, replies: superagent.replies } }),
   })
   await writeFile(join(runDir, 'run.json'), `${JSON.stringify(record, null, 2)}\n`)
   return record

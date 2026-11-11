@@ -26,17 +26,35 @@ export const LabTask = z.object({
 })
 export type LabTask = z.output<typeof LabTask>
 
-export const Condition = z.object({
+/** When a dsh-superagent run is over; see `stopReason` in superagent.ts. */
+export const SuperagentOptions = z.object({
+  /** Seconds with nothing in progress before the run counts as over. */
+  quietSec: z.number().int().positive().default(60),
+  /** Minutes to wait for the first Ticket. */
+  noTicketMin: z.number().int().positive().default(10),
+  /** Minutes before the run is stopped regardless. */
+  timeoutMin: z.number().int().positive().default(120),
+  /** Seconds between two reads of the Tickets. */
+  pollSec: z.number().int().positive().default(5),
+}).strict()
+export type SuperagentOptions = z.output<typeof SuperagentOptions>
+
+const ConditionBase = {
   version: z.literal(1),
   id: Id,
   description: z.string().min(1),
-  /** How the agent is launched. Only one-shot DSH headless runs exist so far. */
-  launcher: z.literal('dsh-headless'),
   /** DSH loader patch files applied in order, relative to the condition file. */
   patches: z.array(z.string().min(1)).default([]),
   /** Extra non-secret environment variables. Credentials come from the caller's environment. */
   env: z.record(z.string(), z.string()).default({}),
-})
+}
+
+export const Condition = z.discriminatedUnion('launcher', [
+  /** One-shot `dsh --profile headless`, the prompt on standard input. */
+  z.object({ ...ConditionBase, launcher: z.literal('dsh-headless') }),
+  /** The dsh-superagent prototype on its own Web profile; the prompt arrives through the lab-task Source. */
+  z.object({ ...ConditionBase, launcher: z.literal('dsh-superagent'), superagent: SuperagentOptions.default(SuperagentOptions.parse({})) }),
+])
 export type Condition = z.output<typeof Condition>
 
 export interface Loaded<T> {

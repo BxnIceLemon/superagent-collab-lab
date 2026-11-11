@@ -1,0 +1,13 @@
+version: 1
+id: superagent-deepseek-flash
+description: >-
+  The unmodified dsh-superagent prototype on DeepSeek V4.1 Flash, run offline:
+  the task arrives as one direct message from an allowed operator through the
+  lab-task Source, its main Session routes it to Tickets, and each Ticket's
+  executor works in the run workspace. Only the Delivery requirements prompt
+  section is replaced, because there is no GitHub repository to deliver to.
+  The run ends once nothing can move without a person.
+launcher: dsh-superagent
+patches:
+  - patches/plain-session-log.yml
+  - patches/model-deepseek-flash.yml

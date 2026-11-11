@@ -68,5 +68,25 @@ export const RunRecord = z.object({
   totalCost: Cost.nullable(),
   /** Messages a person sent after the initial task: the human-attention measure. */
   followUpMessages: z.number().int().nonnegative(),
+  /** dsh-superagent runs only: how the run ended and the Tickets it left. */
+  superagent: z
+    .object({
+      /** settled: every Ticket ended; needs-person: the open ones wait for a person. */
+      stopReason: z.enum(['settled', 'needs-person', 'no-ticket', 'timeout', 'server-exited']),
+      tickets: z.array(
+        z.object({
+          id: z.string(),
+          title: z.string(),
+          state: z.string(),
+          stage: z.string(),
+          action: z.string().nullable(),
+          outcome: z.string().nullable(),
+          summary: z.string().nullable(),
+        }),
+      ),
+      /** Messages the agent sent to the operator. */
+      replies: z.number().int().nonnegative(),
+    })
+    .optional(),
 })
 export type RunRecord = z.output<typeof RunRecord>

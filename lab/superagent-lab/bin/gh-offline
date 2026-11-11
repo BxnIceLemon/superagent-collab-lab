@@ -1,0 +1,19 @@
+#!/bin/sh
+# Offline stand-in for the agent's GitHub CLI. dsh-superagent's setup requires
+# an agent account with push access to a repository; this answers those two
+# checks for a fictitious account, lab-agent, and repository, lab/workspace, so the prototype runs with
+# no network service other than the model providers. Every other call fails,
+# so a worker that tries to reach GitHub learns that it cannot.
+case "$1 $2" in
+  'api user')
+    printf '%s\n' '{"login":"lab-agent","id":1}'
+    exit 0 ;;
+  'api repos/lab/workspace')
+    printf '%s\n' '{"name":"lab/workspace","push":true}'
+    exit 0 ;;
+  'auth git-credential')
+    # git asks for github.com credentials; there are none.
+    exit 1 ;;
+esac
+echo 'gh: GitHub is not available in this lab run; deliver in the ticket directory instead.' >&2
+exit 1
