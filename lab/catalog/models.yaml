@@ -1,4 +1,5 @@
-# Fixed model catalog, filled in by hand on 2026-11-10. Every figure records
+# Fixed model catalog, filled in by hand on 2026-11-10; the gpt-6.1-sol,
+# gpt-6.1-terra and gpt-6-luna entries on 2026-11-11. Every figure records
 # its source and query date so runs can be repriced and audited.
 #
 # Billing. DeepSeek models are billed per token on the official API, with
@@ -265,7 +266,7 @@ models:
       rank: 39
       score: 1450
 - provider: codex
-  model: gpt-5.6-sol
+  model: gpt-6.1-sol
   billing: subscription
   plan:
     name: ChatGPT Plus
@@ -278,21 +279,28 @@ models:
     - source:
         name: Arena WebDev leaderboard (Code Arena, Overall)
         url: https://arena.ai/leaderboard/webdev
-        queriedAt: '2026-11-10'
-      entry: GPT-5.6 Sol (xHigh, Codex Harness)
-      rank: 25
-      score: 1615
-      rankUpper: 36
+        queriedAt: '2026-11-11'
+      entry: GPT-6.1 Sol (Max)
+      rank: 4
+      score: 1743
+      rankUpper: 7
+    - source:
+        name: Design Arena leaderboard (Overall Agentic)
+        url: https://www.designarena.ai/leaderboard
+        queriedAt: '2026-11-11'
+      entry: GPT-6.1 Sol (max)
+      rank: 2
+      score: 1407
     copy:
     - source:
         name: Arena Text leaderboard, Creative Writing
         url: https://arena.ai/leaderboard/text/creative-writing
-        queriedAt: '2026-11-10'
-      entry: GPT-5.6 Sol (xHigh)
-      rank: 17
-      score: 1471
+        queriedAt: '2026-11-11'
+      entry: GPT-6.1 Sol (Max)
+      rank: 41
+      score: 1449
 - provider: codex
-  model: gpt-5.6-terra
+  model: gpt-6.1-terra
   billing: subscription
   plan:
     name: ChatGPT Plus
@@ -305,21 +313,14 @@ models:
     - source:
         name: Arena WebDev leaderboard (Code Arena, Overall)
         url: https://arena.ai/leaderboard/webdev
-        queriedAt: '2026-11-10'
-      entry: GPT-5.6 Terra (xHigh, Codex Harness)
-      rank: 57
-      score: 1520
-      rankUpper: 67
-    copy:
-    - source:
-        name: Arena Text leaderboard, Creative Writing
-        url: https://arena.ai/leaderboard/text/creative-writing
-        queriedAt: '2026-11-10'
-      entry: GPT-5.6 Terra (xHigh)
-      rank: 75
-      score: 1430
+        queriedAt: '2026-11-11'
+      entry: GPT-6.1 Terra (Max)
+      rank: 9
+      score: 1679
+      rankUpper: 16
+    copy: []
 - provider: codex
-  model: gpt-5.6-luna
+  model: gpt-6-luna
   billing: subscription
   plan:
     name: ChatGPT Plus
@@ -332,16 +333,16 @@ models:
     - source:
         name: Arena WebDev leaderboard (Code Arena, Overall)
         url: https://arena.ai/leaderboard/webdev
-        queriedAt: '2026-11-10'
-      entry: GPT-5.6 Luna (xHigh, Codex Harness)
-      rank: 57
-      score: 1519
-      rankUpper: 68
+        queriedAt: '2026-11-11'
+      entry: GPT-6 Luna (Max)
+      rank: 39
+      score: 1577
+      rankUpper: 46
     copy:
     - source:
         name: Arena Text leaderboard, Creative Writing
         url: https://arena.ai/leaderboard/text/creative-writing
-        queriedAt: '2026-11-10'
-      entry: GPT-5.6 Luna (xHigh)
-      rank: 94
-      score: 1410
+        queriedAt: '2026-11-11'
+      entry: GPT-6 Luna (Max)
+      rank: 96
+      score: 1408

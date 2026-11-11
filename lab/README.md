@@ -73,7 +73,7 @@ Every run sets `DSH_TELEMETRY_MODE=DISABLED`.
 | --- | --- | --- | --- |
 | Root agent (DSH) | `deepseek-flash` (V4.1 Flash), `deepseek-v4-pro` | DeepSeek API key | Per token, with weekday peak rates |
 | Claude Code workers | `claude-fable-5-2`, `claude-opus-5-5`, `claude-sonnet-5-5`, `claude-haiku-5-5` | Host Claude Code login, through the bundled Claude Code 2.1.311 | Claude Max (5x) subscription |
-| Codex workers | `gpt-6-astra`, `gpt-5.6-sol`, `gpt-5.6-terra`, `gpt-5.6-luna` | Codex login in `~/.codex`, through the bundled Codex 0.167.0-alpha.3.2 | ChatGPT Plus subscription |
+| Codex workers | `gpt-6-astra`, `gpt-6.1-sol`, `gpt-6.1-terra`, `gpt-6-luna` | Codex login in `~/.codex`, through the bundled Codex 0.167.0-alpha.3.2 | ChatGPT Plus subscription |
 
 Each worker model is its own delegation tool, such as `subagent_claude_opus`
 or `subagent_codex_luna`; see `conditions/patches/worker-*.yml`. Both CLIs
