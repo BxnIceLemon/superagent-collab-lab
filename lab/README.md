@@ -18,7 +18,7 @@ adapters (an opt-in usage log and newer bundled CLIs) listed in
 | `superagent/` | [dsh-superagent-prototype](https://github.com/deepseek-ai/dsh-superagent-prototype) at commit `8c32a9dc5d`, imported with `git subtree` and unmodified |
 | `superagent-lab/` | What the prototype needs to run offline: the `lab-task` Source, an offline stand-in for `gh`, and the lab's Delivery requirements prompt section |
 | `benchmarks/` | The published benchmarks the lab runs, each pinned to a commit (`sources.yaml`), and the image each is scored in (`scorers/`) |
-| `isolation/` | The image an isolated run happens in |
+| `isolation/` | The image an isolated run happens in, and the network policy of its proxy (`isolation/proxy/`) |
 | `.cache/` | Ignored by git: benchmark checkouts, generated benchmark tasks, image build contexts and logs |
 | `results/` | Run outputs; ignored by git except where a run is committed on purpose |
 
@@ -112,7 +112,7 @@ neither the host's CLI updates nor its default models.
 | `superagent` | Super-agent condition only: `stopReason` (below), each Ticket's state, stage, outcome and summary, and the number of replies |
 | `gates[]` | Exit status of each task gate, run in the workspace after the agent stops |
 | `score` | Benchmark tasks only: the benchmark's own evaluation of the workspace, with the benchmark commit and scorer image it used; see [Benchmarks](#benchmarks) |
-| `isolation` | Isolated runs only: the agent image tag and id |
+| `isolation` | Isolated runs only: the agent image tag and id, and `network`: the refused phrases, how many requests were made and refused, the first refused URLs, and the request log `network/requests.jsonl` |
 | `agent.wallMs` | Wall time of the agent process |
 | `environment` | Repository commit, Node version, platform, the bundled Agent SDK, Claude Code and Codex versions, and the host Claude Code version for reference |
 
@@ -256,6 +256,50 @@ appear in command lines or records:
 | `DEEPSEEK_API_KEY` | From `lab/.env` or the environment |
 | `CLAUDE_CODE_OAUTH_TOKEN` | A long-lived token from `claude setup-token`, set in `lab/.env`. DSH removes credential-like variables from child processes, so `worker-claude-code.yml` hands it to the adapter explicitly |
 | Codex login | The Docker volume `collab-lab-codex`, mounted as the container's `~/.codex`. `isolation codex-login` signs the bundled Codex in by device code; it never touches the operator's own `~/.codex` |
+
+### Network
+
+The agent can use the web for research, but not reach the task's original
+sources. Its container is attached only to an internal Docker network whose
+one way out is a proxy container (mitmproxy 12.1.2, pinned by digest, with
+`isolation/proxy/policy.py`). Leaving the proxy out is not possible: a
+connection that does not go through it has no route.
+
+- **Model APIs** (`deepseek.com`, `anthropic.com`, `claude.ai`, `claude.com`,
+  `openai.com`, `chatgpt.com` and their subdomains) are tunnelled without
+  decryption.
+- **Everything else** is decrypted with a lab CA, kept in
+  `.cache/proxy-ca/` and generated on first use. The container trusts it
+  through `NODE_EXTRA_CA_CERTS`, `SSL_CERT_FILE`, `REQUESTS_CA_BUNDLE`,
+  `CURL_CA_BUNDLE`, `PIP_CERT` and `GIT_SSL_CAINFO`, so curl, pip, git,
+  Python and Node all go through the proxy.
+- **A request is refused (HTTP 403)** when its URL names an original source.
+  A phrase matches when adjacent words of the percent-decoded URL spell it,
+  whatever separates them; a version suffix of digits is allowed. For
+  example, "python decouple" matches `python-decouple`, `python_decouple`
+  and `pythondecouple`, but not `decoupled`. The phrases come from three
+  places:
+  - Each benchmark's name, title and repository, whose data holds the
+    reference answers.
+  - For NL2Repo-Bench, the published library's names: the task folder and
+    the name its `start.md` heading gives.
+  - For E2EDev, the GitHub repositories and accounts a prompt links to.
+
+  The generated task records them as `benchmark.originals`.
+- **Every request is logged**, refused or not, to the run's
+  `network/requests.jsonl`, so a run can be audited for sources the rules
+  missed.
+
+Limits:
+- The rules cover URLs only. What a search engine returns about an original
+  project in its result snippets still reaches the agent, and so does search
+  that the model provider runs on its own side.
+- A copy published under an unrelated name is not caught.
+- A single-word library name (`six`, `parse`, `schema`) also refuses
+  unrelated pages that use the word as a path segment, for that task only.
+- ProjectEval and most E2EDev projects carry no record of where they came
+  from, so for them only the benchmark repositories and linked repositories
+  are refused.
 
 ### Docker on macOS
 

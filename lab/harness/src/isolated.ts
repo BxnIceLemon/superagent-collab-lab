@@ -2,6 +2,10 @@ import { spawn, spawnSync } from 'node:child_process'
 import { createWriteStream } from 'node:fs'
 import { readFile, writeFile } from 'node:fs/promises'
 import { isAbsolute, join, relative } from 'node:path'
+import { BenchmarkSources } from './benchmarks.ts'
+import { loadTask } from './experiment.ts'
+import { readDocument } from './files.ts'
+import { blockedPhrases, startNetwork } from './network.ts'
 import { RunRecord } from './record.ts'
 import type { Scorer } from './runner.ts'
 
@@ -15,7 +19,8 @@ import type { Scorer } from './runner.ts'
  * settings, skills, plugins or instructions reach the agent. Credentials are
  * passed per run: the DeepSeek key and a Claude Code token by environment
  * variable name (their values never appear in arguments or records), the
- * Codex login through its own volume.
+ * Codex login through its own volume. Its network goes through the lab
+ * proxy, which refuses the task's original sources (see network.ts).
  */
 
 /** The volume holding the Codex login used by isolated runs; separate from the operator's ~/.codex. */
@@ -111,8 +116,13 @@ export async function runIsolated(options: IsolatedRunOptions): Promise<string> 
   const id = imageId(tag)
   if (id === null) throw new Error(`no agent image for ${commit.slice(0, 12)}; run \`lab isolation build\` first`)
 
+  const task = (await loadTask(options.taskFile)).value
+  const sources = (await readDocument(join(labDir, 'benchmarks/sources.yaml'), BenchmarkSources)).benchmarks
+  const network = await startNetwork(labDir, tag, blockedPhrases(sources, task.benchmark))
+
   const args = [
     'run', '--rm', '--init',
+    ...network.agentArgs,
     '--memory', options.memory ?? '6g',
     '--shm-size', '1g',
     '--volume', `${resultsDir}:${IMAGE_RESULTS}`,
@@ -128,25 +138,33 @@ export async function runIsolated(options: IsolatedRunOptions): Promise<string> 
     '--no-score',
   )
 
-  const runJson = await new Promise<string>((resolve, reject) => {
-    const child = spawn('docker', args, { stdio: ['ignore', 'pipe', 'inherit'] })
-    let stdout = ''
-    child.stdout.on('data', (chunk: Buffer) => { stdout += chunk.toString() })
-    child.on('error', reject)
-    child.on('close', () => {
-      const last = stdout.trim().split('\n').at(-1) ?? ''
-      if (!last.startsWith(`${IMAGE_RESULTS}/`)) reject(new Error(`the agent container did not report a run: ${stdout.trim()}`))
-      else resolve(join(resultsDir, relative(IMAGE_RESULTS, last)))
+  let runJson: string
+  try {
+    runJson = await new Promise<string>((resolve, reject) => {
+      const child = spawn('docker', args, { stdio: ['ignore', 'pipe', 'inherit'] })
+      let stdout = ''
+      child.stdout.on('data', (chunk: Buffer) => { stdout += chunk.toString() })
+      child.on('error', reject)
+      child.on('close', () => {
+        const last = stdout.trim().split('\n').at(-1) ?? ''
+        if (!last.startsWith(`${IMAGE_RESULTS}/`)) reject(new Error(`the agent container did not report a run: ${stdout.trim()}`))
+        else resolve(join(resultsDir, relative(IMAGE_RESULTS, last)))
+      })
     })
-  })
+  } catch (error) {
+    await network.close(null)
+    throw error
+  }
 
   const runDir = join(runJson, '..')
+  const networkRecord = await network.close(runDir)
   const record = RunRecord.parse(JSON.parse(await readFile(runJson, 'utf8')))
   const benchmark = record.task.benchmark
   const score = benchmark !== undefined && options.scorer !== undefined
     ? await options.scorer(benchmark, join(runDir, 'workspace'), join(runDir, 'score'))
     : undefined
-  const updated = RunRecord.parse({ ...record, isolation: { image: tag, imageId: id }, ...(score === undefined ? {} : { score }) })
+  const isolation = { image: tag, imageId: id, ...(networkRecord === null ? {} : { network: networkRecord }) }
+  const updated = RunRecord.parse({ ...record, isolation, ...(score === undefined ? {} : { score }) })
   await writeFile(runJson, `${JSON.stringify(updated, null, 2)}\n`)
   return runJson
 }

@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { BenchmarkRef } from './benchmarks.ts'
+import { NetworkRecord } from './network.ts'
 import { BenchmarkScore } from './scoring.ts'
 
 /** The `run.json` written for every run; the unit the paper's tables are built from. */
@@ -77,6 +78,8 @@ export const RunRecord = z.object({
     .object({
       image: z.string(),
       imageId: z.string().nullable(),
+      /** What the agent could reach, and what it was refused. */
+      network: NetworkRecord.optional(),
     })
     .optional(),
   /** dsh-superagent runs only: how the run ended and the Tickets it left. */

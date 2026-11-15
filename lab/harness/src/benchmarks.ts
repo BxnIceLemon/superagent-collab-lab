@@ -34,6 +34,8 @@ export const BenchmarkRef = z.object({
   commit: z.string().regex(/^[0-9a-f]{40}$/),
   /** ProjectEval input level: 1 natural-language prompt, 2 checklist, 3 skeleton. */
   level: z.union([z.literal(1), z.literal(2), z.literal(3)]).optional(),
+  /** Phrases naming where the item came from (its upstream project, repositories it links); isolated runs refuse URLs that name them. */
+  originals: z.array(z.string().min(1)).optional(),
 })
 export type BenchmarkRef = z.output<typeof BenchmarkRef>
 
@@ -178,6 +180,27 @@ export async function e2edevAssets(sourceProject: string, prompt: string): Promi
   return found.sort()
 }
 
+function originals(phrases: string[]): { originals?: string[] } {
+  const unique = phrases.filter((p, i) => phrases.findIndex(q => q.toLowerCase() === p.toLowerCase()) === i)
+  return unique.length > 0 ? { originals: unique } : {}
+}
+
+/**
+ * The GitHub accounts and repositories an E2EDev prompt links to: its projects
+ * were taken from public repositories, and some prompts still point at them.
+ * @param prompt - the task's prompt.
+ * @returns "owner/repo" phrases, or "github.com/owner" for an account link.
+ */
+export function githubOriginals(prompt: string): string[] {
+  const found = new Set<string>()
+  for (const m of prompt.matchAll(/github\.com\/([A-Za-z0-9-]+)(?:\/([A-Za-z0-9._-]+))?/g)) {
+    const owner = m[1]
+    const repo = m[2]?.replace(/\.(git)?$/, '')
+    found.add(repo ? `${owner}/${repo}` : `github.com/${owner}`)
+  }
+  return [...found]
+}
+
 async function e2edevTasks(checkout: string, commit: string): Promise<TaskDraft[]> {
   const data = join(checkout, 'E2EDev_data')
   const items = (await readdir(data, { withFileTypes: true })).filter(e => e.isDirectory()).map(e => e.name).sort()
@@ -189,7 +212,7 @@ async function e2edevTasks(checkout: string, commit: string): Promise<TaskDraft[
       id: `e2edev-${item.replace(/^E2ESD_Bench_/, '').toLowerCase()}`,
       title: `E2EDev ${item}`,
       prompt,
-      benchmark: { name: 'e2edev' as const, item, commit },
+      benchmark: { name: 'e2edev' as const, item, commit, ...originals(githubOriginals(prompt)) },
       fixture: assets.map(a => ({ from: join(source, a), to: a })),
     }
   }))
@@ -200,6 +223,48 @@ async function e2edevTasks(checkout: string, commit: string): Promise<TaskDraft[
 /** The instruction NL2Repo-Bench gives its agent (openhands/openhands_app.py). */
 export const NL2REPO_PROMPT =
   'According to the start.md in the workspace, implement the entire project as per the requirements specified in the document, ensuring that the final product can be directly run in the current directory. The running requirements should comply with the <API Usage Guide> section of the document. Please complete this task step by step.'
+
+/**
+ * The project an NL2Repo-Bench document describes, by the name its first heading gives it.
+ * @param startMd - the task's start.md.
+ * @returns the name, or null when the heading names none.
+ */
+export function nl2repoProjectName(startMd: string): string | null {
+  const heading = startMd.replace(/^\uFEFF/, '').split('\n')[0]?.replace(/^#+\s*/, '').trim() ?? ''
+  const named = /\b(?:of|to) the (.+?) Project\b/i.exec(heading)
+    ?? /^(.+?) Project\b/i.exec(heading)
+    ?? /^((?:\S+ ){0,2}\S+) - /.exec(heading)
+    ?? (heading.split(/\s+/).length <= 2 ? [heading, heading] : null)
+  const name = named?.[1]?.trim()
+  return name && !/^(the )?project$/i.test(name) ? name : null
+}
+
+const key = (phrase: string): string => phrase.toLowerCase().replace(/[^a-z0-9]/g, '')
+/** Branch and release suffixes some task folders carry: "pdfplumber-stable" is pdfplumber. */
+const withoutSuffix = (name: string): string => name.replace(/[-_ ](main|master|stable|v\d+)$/i, '')
+
+/**
+ * The names an NL2Repo-Bench task's library is published under: each task is
+ * a library on GitHub and PyPI, and its name finds its repository, packages
+ * and mirrors. The folder name is dropped when it is only part of the
+ * document's name ("sklearn" for sklearn-pandas), since it would refuse
+ * pages about other projects, unless the rest is a "python-" prefix or a
+ * version number ("decouple" for python-decouple, "jinja" for Jinja2).
+ * @param item - the task folder name.
+ * @param name - the name the task's document gives, if any.
+ * @returns the phrases.
+ */
+export function nl2repoOriginals(item: string, name: string | null): string[] {
+  const names = [item, ...(name === null ? [] : [name])].flatMap(n => [n, withoutSuffix(n)])
+  const doc = name === null ? null : key(withoutSuffix(name))
+  const kept = names.filter(n => {
+    const k = key(n)
+    if (doc === null || k === doc || !doc.includes(k)) return true
+    const rest = doc.replace(k, '')
+    return rest === 'python' || /^\d+$/.test(rest)
+  })
+  return kept.filter((n, i) => kept.findIndex(m => key(m) === key(n)) === i)
+}
 
 async function nl2repoTasks(checkout: string, commit: string): Promise<TaskDraft[]> {
   const data = join(checkout, 'test_files')
@@ -212,7 +277,7 @@ async function nl2repoTasks(checkout: string, commit: string): Promise<TaskDraft
       id: `nl2repo-${item.toLowerCase().replace(/[^a-z0-9-]/g, '-')}`,
       title: `NL2Repo-Bench ${item}`,
       prompt: NL2REPO_PROMPT,
-      benchmark: { name: 'nl2repo', item, commit },
+      benchmark: { name: 'nl2repo', item, commit, ...originals(nl2repoOriginals(item, nl2repoProjectName(await readFile(join(data, item, 'start.md'), 'utf8')))) },
       fixture: [{ from: join(data, item, 'start.md'), to: 'start.md' }],
     })
   }

@@ -52,6 +52,10 @@ fetches each at its pinned commit into the git-ignored `lab/.cache/` and runs
 its evaluation code there, unchanged; the scorer scripts in
 `benchmarks/scorers/` only call that code.
 
+Isolated runs use the published mitmproxy image (MIT license), pulled by
+digest and not redistributed; `isolation/proxy/policy.py` is a lab addon
+loaded into it.
+
 The lab's own work is confined to `lab/` (excluding `lab/superagent/`),
 `.github/README.md` and `CITATION.cff`, and is licensed under
 [lab/LICENSE](LICENSE). The prototype in `lab/superagent/` is unmodified.
