@@ -1,0 +1,26 @@
+# Published benchmarks the lab runs. Each is pinned to one commit of its
+# authors' repository and fetched into lab/.cache/benchmarks/ when needed;
+# none of their code or data is committed here. Scoring runs their own
+# evaluation code, unchanged, inside the scorer images in benchmarks/scorers/.
+version: 1
+benchmarks:
+- name: projecteval
+  title: ProjectEval
+  repository: https://github.com/RyanLoil/ProjectEval
+  commit: 578b2055d5bb402657d8f382440b7a6fb3ebe396
+  license: GPL-3.0
+  paper: https://aclanthology.org/2025.findings-acl.1036/
+- name: e2edev
+  title: E2EDev
+  repository: https://github.com/SCUNLP/E2EDev
+  commit: d280dd144fbff30c237af26c1a76948e2f8857fa
+  # The repository has no license file: it is run, not redistributed.
+  license: null
+  paper: https://aclanthology.org/2026.acl-long.1618/
+- name: nl2repo
+  title: NL2Repo-Bench
+  repository: https://github.com/multimodal-art-projection/NL2RepoBench
+  commit: 781a1da1ee41fb8edb0bed22f586d69111610edf
+  # The repository has no license file: it is run, not redistributed.
+  license: null
+  paper: https://proceedings.mlr.press/v306/ding26j.html

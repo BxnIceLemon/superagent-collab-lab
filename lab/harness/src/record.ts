@@ -1,4 +1,6 @@
 import { z } from 'zod'
+import { BenchmarkRef } from './benchmarks.ts'
+import { BenchmarkScore } from './scoring.ts'
 
 /** The `run.json` written for every run; the unit the paper's tables are built from. */
 
@@ -16,7 +18,7 @@ export const RunRecord = z.object({
   version: z.literal(1),
   runId: z.string(),
   startedAt: z.iso.datetime(),
-  task: z.object({ id: z.string(), file: z.string() }),
+  task: z.object({ id: z.string(), file: z.string(), benchmark: BenchmarkRef.optional() }),
   condition: z.object({ id: z.string(), file: z.string() }),
   environment: z.object({
     /** Commit of this repository the run used; null outside a git checkout. */
@@ -68,6 +70,15 @@ export const RunRecord = z.object({
   totalCost: Cost.nullable(),
   /** Messages a person sent after the initial task: the human-attention measure. */
   followUpMessages: z.number().int().nonnegative(),
+  /** Benchmark tasks only: the benchmark's own score of the workspace. */
+  score: BenchmarkScore.optional(),
+  /** Runs started with --isolated: the container the agent ran in. */
+  isolation: z
+    .object({
+      image: z.string(),
+      imageId: z.string().nullable(),
+    })
+    .optional(),
   /** dsh-superagent runs only: how the run ended and the Tickets it left. */
   superagent: z
     .object({

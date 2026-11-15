@@ -9,7 +9,9 @@ import { priceUsage, totalCost, type ModelCatalog } from './catalog.ts'
 import type { Condition, Gate, LabTask, Loaded } from './experiment.ts'
 import { readExternalUsage } from './external-usage.ts'
 import { detectHostTools, type HostTools } from './host-tools.ts'
+import { benchmarkSource, type BenchmarkRef } from './benchmarks.ts'
 import { RunRecord, type GateResult } from './record.ts'
+import { scoreWorkspace, type BenchmarkScore } from './scoring.ts'
 import { findSessionLogs, followUpMessages, mergeUsage, readSessionLog } from './session-log.ts'
 import { runSuperagent, superagentPaths, type SuperagentResult } from './superagent.ts'
 
@@ -51,15 +53,36 @@ export interface RunOptions {
   /** Host CLIs; detected when omitted. */
   hostTools?: HostTools
   now?: () => Date
+  /**
+   * Scores a benchmark task's workspace; defaults to the benchmark's scorer
+   * image. False leaves the score out, for a run whose scoring happens
+   * elsewhere (an isolated run is scored outside its container).
+   */
+  scorer?: Scorer | false
+}
+
+/** Scores a benchmark item's workspace, writing its outputs to `outDir`. */
+export type Scorer = (ref: BenchmarkRef, workspace: string, outDir: string) => Promise<BenchmarkScore>
+
+/**
+ * The default scorer: the benchmark's own evaluation in its scorer image.
+ * @param labDir - the lab directory.
+ * @returns a scorer.
+ */
+export function imageScorer(labDir: string): Scorer {
+  return async (ref, workspace, outDir) =>
+    scoreWorkspace({ labDir, source: await benchmarkSource(labDir, ref.name), ref, workspace, outDir })
 }
 
 function stamp(date: Date): string {
   return date.toISOString().replace(/[-:]/g, '').replace(/\.\d+Z$/, 'Z')
 }
 
+/** The repository commit; in the isolated-run image, which has no .git, the one it was built from. */
 function gitHead(repoRoot: string): string | null {
   const result = spawnSync('git', ['rev-parse', 'HEAD'], { cwd: repoRoot, encoding: 'utf8' })
-  return result.status === 0 ? result.stdout.trim() : null
+  if (result.status === 0) return result.stdout.trim()
+  return process.env.LAB_REPO_COMMIT || null
 }
 
 interface Exit {
@@ -162,6 +185,10 @@ export async function runExperiment(options: RunOptions): Promise<RunRecord> {
 
   const gates: GateResult[] = []
   for (const gate of task.value.gates) gates.push(await runGate(gate, workspace, gateLogs))
+  const labDir = options.labDir ?? join(options.repoRoot, 'lab')
+  const scorer = options.scorer === undefined ? imageScorer(labDir) : options.scorer
+  const benchmark = task.value.benchmark
+  const score = benchmark !== undefined && scorer !== false ? await scorer(benchmark, workspace, join(runDir, 'score')) : undefined
 
   const sessions = await Promise.all((await findSessionLogs(join(home, 'sessions'))).map(readSessionLog))
   const counted = [
@@ -181,7 +208,7 @@ export async function runExperiment(options: RunOptions): Promise<RunRecord> {
     version: 1,
     runId,
     startedAt: started.toISOString(),
-    task: { id: task.value.id, file: task.file },
+    task: { id: task.value.id, file: task.file, ...(benchmark === undefined ? {} : { benchmark }) },
     condition: { id: condition.value.id, file: condition.file },
     environment: {
       repoCommit: gitHead(options.repoRoot),
@@ -201,6 +228,7 @@ export async function runExperiment(options: RunOptions): Promise<RunRecord> {
     totalCost: totalCost(pricings),
     // The prototype's Sessions receive its own relays, not the person's messages; the operator's inbox counts those.
     followUpMessages: superagent === undefined ? followUpMessages(sessions) : Math.max(0, superagent.operatorMessages - 1),
+    ...(score === undefined ? {} : { score }),
     ...(superagent === undefined
       ? {}
       : { superagent: { stopReason: superagent.stopReason, tickets: superagent.tickets, replies: superagent.replies } }),

@@ -44,6 +44,14 @@ versions; the adapters' unit, keyless real-product and credentialed
 end-to-end tests pass. Archived design notes under `.agents/notes/` keep the
 versions they were written for.
 
+## Benchmarks
+
+The benchmarks in `benchmarks/sources.yaml` (ProjectEval, GPL-3.0; E2EDev and
+NL2Repo-Bench, published without a license) are not included. The lab
+fetches each at its pinned commit into the git-ignored `lab/.cache/` and runs
+its evaluation code there, unchanged; the scorer scripts in
+`benchmarks/scorers/` only call that code.
+
 The lab's own work is confined to `lab/` (excluding `lab/superagent/`),
 `.github/README.md` and `CITATION.cff`, and is licensed under
 [lab/LICENSE](LICENSE). The prototype in `lab/superagent/` is unmodified.

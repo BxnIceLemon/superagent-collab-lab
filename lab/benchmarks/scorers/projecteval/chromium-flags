@@ -1,0 +1,3 @@
+# Read by Debian's /usr/bin/chromium wrapper. A container has no usable
+# Chromium sandbox and a small /dev/shm.
+export CHROMIUM_FLAGS="$CHROMIUM_FLAGS --no-sandbox --disable-dev-shm-usage"

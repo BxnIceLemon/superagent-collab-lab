@@ -32,6 +32,7 @@ const COLUMNS = [
   'condition',
   'exit',
   'gates passed',
+  'score',
   'wall s',
   'input tok',
   'cache-read tok',
@@ -41,6 +42,18 @@ const COLUMNS = [
   'sessions',
   'follow-ups',
 ] as const
+
+/**
+ * A benchmark score in the benchmark's own headline terms: passed test cases
+ * for ProjectEval and NL2Repo-Bench, passed requirements for E2EDev.
+ */
+function headline(run: RunRecord): string {
+  const score = run.score
+  if (score === undefined) return ''
+  if (score.status === 'error') return 'error'
+  const m = score.metrics
+  return score.benchmark === 'e2edev' ? `${m.passedRequirements}/${m.requirements} req` : `${m.passed}/${m.cases}`
+}
 
 function row(run: RunRecord): string[] {
   const sum = (key: 'inputTokens' | 'cacheReadTokens' | 'outputTokens') =>
@@ -55,6 +68,7 @@ function row(run: RunRecord): string[] {
     run.condition.id,
     run.agent.code === null ? `signal ${run.agent.signal}` : String(run.agent.code),
     `${passed}/${run.gates.length}`,
+    headline(run),
     (run.agent.wallMs / 1000).toFixed(1),
     sum('inputTokens'),
     sum('cacheReadTokens'),

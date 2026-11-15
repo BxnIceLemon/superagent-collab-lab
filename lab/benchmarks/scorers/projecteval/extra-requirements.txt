@@ -1,0 +1,4 @@
+# Imported by ProjectEval's llm.py (sympy) and openjudge.py (scikit-learn) but
+# missing from its requirements-docker.txt.
+sympy==1.14.0
+scikit-learn==1.6.1

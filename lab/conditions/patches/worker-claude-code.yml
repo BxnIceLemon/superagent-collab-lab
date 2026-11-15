@@ -6,6 +6,12 @@
 # The adapter runs the Claude Code bundled with its Agent SDK (0.3.311,
 # Claude Code 2.1.311), pinned by the DSH lockfile.
 #
+# In an isolated run (lab/isolation/) there is no host login: the adapter
+# gets the operator's long-lived token from `claude setup-token` through
+# CLAUDE_CODE_OAUTH_TOKEN. DSH removes credential-like variables from child
+# environments, so the token is passed to the adapter explicitly. Unset, the
+# adapter uses the local login as before.
+#
 # permissionMode "auto" lets Claude Code's own classifier approve tool use
 # without a person, so a worker can edit and run commands unattended.
 - insert:
@@ -16,6 +22,7 @@
         model: claude-fable-5-2
         permissionMode: auto
         usageLog: !!js dshHomePath('lab-usage.jsonl')
+        env: !!js "process.env.CLAUDE_CODE_OAUTH_TOKEN ? { CLAUDE_CODE_OAUTH_TOKEN: process.env.CLAUDE_CODE_OAUTH_TOKEN } : {}"
     - id: tool-subagent-claude-fable
       name: '@deepseek-ai/dsh-tool-subagent'
       config:
@@ -29,6 +36,7 @@
         model: claude-opus-5-5
         permissionMode: auto
         usageLog: !!js dshHomePath('lab-usage.jsonl')
+        env: !!js "process.env.CLAUDE_CODE_OAUTH_TOKEN ? { CLAUDE_CODE_OAUTH_TOKEN: process.env.CLAUDE_CODE_OAUTH_TOKEN } : {}"
     - id: tool-subagent-claude-opus
       name: '@deepseek-ai/dsh-tool-subagent'
       config:
@@ -42,6 +50,7 @@
         model: claude-sonnet-5-5
         permissionMode: auto
         usageLog: !!js dshHomePath('lab-usage.jsonl')
+        env: !!js "process.env.CLAUDE_CODE_OAUTH_TOKEN ? { CLAUDE_CODE_OAUTH_TOKEN: process.env.CLAUDE_CODE_OAUTH_TOKEN } : {}"
     - id: tool-subagent-claude-sonnet
       name: '@deepseek-ai/dsh-tool-subagent'
       config:
@@ -55,6 +64,7 @@
         model: claude-haiku-5-5
         permissionMode: auto
         usageLog: !!js dshHomePath('lab-usage.jsonl')
+        env: !!js "process.env.CLAUDE_CODE_OAUTH_TOKEN ? { CLAUDE_CODE_OAUTH_TOKEN: process.env.CLAUDE_CODE_OAUTH_TOKEN } : {}"
     - id: tool-subagent-claude-haiku
       name: '@deepseek-ai/dsh-tool-subagent'
       config:

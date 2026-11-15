@@ -103,7 +103,7 @@ describe('runExperiment', () => {
 
     const runs = await readRuns(join(dir, 'results'))
     expect(runs).toEqual([record])
-    expect(toMarkdown(runs)).toContain('| 20261110T080000Z-t-x-c-x | t-x | c-x | 0 | 1/2 |')
+    expect(toMarkdown(runs)).toContain('| 20261110T080000Z-t-x-c-x | t-x | c-x | 0 | 1/2 |  |')
     // 10+300+40+20 (Claude) + 400+600+70 (Codex)
     expect(toMarkdown(runs)).toContain('| 1440 |')
     expect(toCsv(runs).split('\n')[1]).toContain('0.007000 USD')

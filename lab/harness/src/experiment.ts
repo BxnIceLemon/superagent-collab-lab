@@ -1,5 +1,6 @@
 import { dirname, resolve } from 'node:path'
 import { z } from 'zod'
+import { BenchmarkRef } from './benchmarks.ts'
 import { readDocument } from './files.ts'
 
 /** Experiment inputs: a task to attempt and a condition to attempt it under. */
@@ -23,6 +24,8 @@ export const LabTask = z.object({
   /** Directory copied into the workspace before the run, relative to the task file. */
   fixture: z.string().min(1).optional(),
   gates: z.array(Gate).default([]),
+  /** For a benchmark item: which one, scored by the benchmark's own evaluation after the gates. */
+  benchmark: BenchmarkRef.optional(),
 })
 export type LabTask = z.output<typeof LabTask>
 
