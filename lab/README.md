@@ -89,6 +89,28 @@ are pinned by the DSH lockfile at the versions on the operator's machine (see
 [NOTICE.md](NOTICE.md)), and each worker pins its model, so runs follow
 neither the host's CLI updates nor its default models.
 
+### Codex weekly limit
+
+A run whose condition has Codex workers (`worker-codex.yml`) is guarded
+against Codex's weekly limit. While the agent runs, the harness reads the
+Codex account's usage, at the start and every 10 minutes. When the weekly
+window has less than 5% left and a reset card is banked, it spends one card,
+the earliest to expire. The checks and the reset happen in the harness, beside
+the agent and not inside it, so no session sees them. `run.json` records them
+under `codexQuota`.
+
+- It uses the Codex login the run's workers use: `$CODEX_HOME/auth.json` or
+  `~/.codex/auth.json` on the host, the `collab-lab-codex` volume in an
+  isolated run. The login is only read; it is never refreshed or written,
+  since the Codex CLI owns it.
+- One card at most per run, and a refused or failed consume is not retried.
+  The reading after the run never spends a card.
+- The calls are ChatGPT's own usage endpoints, which the Codex app reads:
+  `GET /backend-api/wham/usage`, `GET /backend-api/wham/rate-limit-reset-credits`
+  and `POST /backend-api/wham/rate-limit-reset-credits/consume`.
+- `runExperiment({ codexQuota: false })` turns it off;
+  `codexQuota: { thresholdPercent, intervalMinutes }` changes it.
+
 ## Conditions
 
 | Condition | What it runs |
@@ -112,6 +134,7 @@ neither the host's CLI updates nor its default models.
 | `superagent` | Super-agent condition only: `stopReason` (below), each Ticket's state, stage, outcome and summary, and the number of replies |
 | `gates[]` | Exit status of each task gate, run in the workspace after the agent stops |
 | `score` | Benchmark tasks only: the benchmark's own evaluation of the workspace, with the benchmark commit and scorer image it used; see [Benchmarks](#benchmarks) |
+| `codexQuota` | Runs with Codex workers: each reading of the Codex account's weekly limit (percent left, reset time, cards available) and any reset card the harness spent; see [Codex weekly limit](#codex-weekly-limit) |
 | `isolation` | Isolated runs only: the agent image tag and id, and `network`: the refused phrases, how many requests were made and refused, the first refused URLs, and the request log `network/requests.jsonl` |
 | `agent.wallMs` | Wall time of the agent process |
 | `environment` | Repository commit, Node version, platform, the bundled Agent SDK, Claude Code and Codex versions, and the host Claude Code version for reference |

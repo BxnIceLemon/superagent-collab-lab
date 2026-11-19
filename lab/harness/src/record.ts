@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { BenchmarkRef } from './benchmarks.ts'
+import { CodexQuotaRecord } from './codex-quota.ts'
 import { NetworkRecord } from './network.ts'
 import { BenchmarkScore } from './scoring.ts'
 
@@ -71,6 +72,8 @@ export const RunRecord = z.object({
   totalCost: Cost.nullable(),
   /** Messages a person sent after the initial task: the human-attention measure. */
   followUpMessages: z.number().int().nonnegative(),
+  /** Runs with Codex workers: the weekly-limit readings and any reset card the harness spent. */
+  codexQuota: CodexQuotaRecord.optional(),
   /** Benchmark tasks only: the benchmark's own score of the workspace. */
   score: BenchmarkScore.optional(),
   /** Runs started with --isolated: the container the agent ran in. */

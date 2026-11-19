@@ -7,6 +7,7 @@ import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { priceUsage, totalCost, type ModelCatalog } from './catalog.ts'
 import type { Condition, Gate, LabTask, Loaded } from './experiment.ts'
+import { CodexQuotaGuard, usesCodexWorkers, type CodexQuotaGuardOptions } from './codex-quota.ts'
 import { readExternalUsage } from './external-usage.ts'
 import { detectHostTools, type HostTools } from './host-tools.ts'
 import { benchmarkSource, type BenchmarkRef } from './benchmarks.ts'
@@ -59,6 +60,12 @@ export interface RunOptions {
    * elsewhere (an isolated run is scored outside its container).
    */
   scorer?: Scorer | false
+  /**
+   * The Codex weekly-limit guard for conditions with Codex workers (see
+   * codex-quota.ts); false turns it off. Defaults: a card when under 5% is
+   * left, a check every 10 minutes, the login in $CODEX_HOME or ~/.codex.
+   */
+  codexQuota?: CodexQuotaGuardOptions | false
 }
 
 /** Scores a benchmark item's workspace, writing its outputs to `outDir`. */
@@ -159,29 +166,40 @@ export async function runExperiment(options: RunOptions): Promise<RunRecord> {
   const env = { ...process.env, ...launcher.env, ...labEnv, ...condition.value.env, DSH_HOME: home }
   let agent: Exit
   let superagent: SuperagentResult | undefined
-  if (condition.value.launcher === 'dsh-headless') {
-    const args = [...launcher.args, '--profile', 'headless', ...condition.value.patches.flatMap(p => ['--patch', p]), '--json', '-']
-    agent = await runProcess(launcher.command, args, {
-      cwd: workspace,
-      env,
-      stdin: task.value.prompt,
-      stdout: join(runDir, 'events.ndjson'),
-      stderr: join(runDir, 'agent.stderr.log'),
-    })
-  } else {
-    superagent = await runSuperagent({
-      launcher,
-      paths: superagentPaths(options.labDir ?? join(options.repoRoot, 'lab')),
-      runDir,
-      workspace,
-      home,
-      prompt: task.value.prompt,
-      patches: condition.value.patches,
-      env,
-      options: condition.value.superagent,
-    })
-    agent = { code: superagent.code, signal: superagent.signal, wallMs: superagent.wallMs }
+  // Runs beside the agent, never inside it: its checks and resets reach no session.
+  const guard = options.codexQuota !== false && usesCodexWorkers(condition.value.patches)
+    ? new CodexQuotaGuard(options.codexQuota ?? {})
+    : undefined
+  await guard?.start()
+  try {
+    if (condition.value.launcher === 'dsh-headless') {
+      const args = [...launcher.args, '--profile', 'headless', ...condition.value.patches.flatMap(p => ['--patch', p]), '--json', '-']
+      agent = await runProcess(launcher.command, args, {
+        cwd: workspace,
+        env,
+        stdin: task.value.prompt,
+        stdout: join(runDir, 'events.ndjson'),
+        stderr: join(runDir, 'agent.stderr.log'),
+      })
+    } else {
+      superagent = await runSuperagent({
+        launcher,
+        paths: superagentPaths(options.labDir ?? join(options.repoRoot, 'lab')),
+        runDir,
+        workspace,
+        home,
+        prompt: task.value.prompt,
+        patches: condition.value.patches,
+        env,
+        options: condition.value.superagent,
+      })
+      agent = { code: superagent.code, signal: superagent.signal, wallMs: superagent.wallMs }
+    }
+  } catch (error) {
+    await guard?.stop()
+    throw error
   }
+  const codexQuota = await guard?.stop()
 
   const gates: GateResult[] = []
   for (const gate of task.value.gates) gates.push(await runGate(gate, workspace, gateLogs))
@@ -229,6 +247,7 @@ export async function runExperiment(options: RunOptions): Promise<RunRecord> {
     // The prototype's Sessions receive its own relays, not the person's messages; the operator's inbox counts those.
     followUpMessages: superagent === undefined ? followUpMessages(sessions) : Math.max(0, superagent.operatorMessages - 1),
     ...(score === undefined ? {} : { score }),
+    ...(codexQuota === undefined ? {} : { codexQuota }),
     ...(superagent === undefined
       ? {}
       : { superagent: { stopReason: superagent.stopReason, tickets: superagent.tickets, replies: superagent.replies } }),
